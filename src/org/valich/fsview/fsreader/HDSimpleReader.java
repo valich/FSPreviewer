@@ -1,5 +1,6 @@
 package org.valich.fsview.fsreader;
 
+import org.jetbrains.annotations.NotNull;
 import org.valich.fsview.FileInfo;
 
 import java.io.IOException;
@@ -12,23 +13,21 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Logger;
 
-/**
- * Created by valich on 20.03.14.
- */
 final class HDSimpleReader extends AbstractSimpleFSReader {
     HDSimpleReader() {
         super(FileSystems.getDefault());
     }
 
-    @Override public boolean changeDirectory(Path path) {
-        if (path == null || !Files.isDirectory(getPath().resolve(path)))
+    @Override public boolean changeDirectory(@NotNull Path path) {
+        if (!Files.isDirectory(getPath().resolve(path)))
             return false;
 
         return super.changeDirectory(path);
     }
 
+    @NotNull
     @Override
-    public Collection<? extends FileInfo> getDirectoryContents() {
+    public Collection<FileInfo> getDirectoryContents() {
         assert Files.isDirectory(getPath()) : "Current directory is not directory " + getPath();
 
         Collection<FileInfo> result = new ArrayList<>();
@@ -46,12 +45,12 @@ final class HDSimpleReader extends AbstractSimpleFSReader {
     }
 
     @Override
-    public FileInfo getFileByPath(Path path) {
+    public FileInfo getFileByPath(@NotNull Path path) {
         return FileInfo.valueOf(getPath().resolve(path));
     }
 
     @Override
-    public InputStream retrieveFileInputStream(Path path) throws IOException {
+    public InputStream retrieveFileInputStream(@NotNull Path path) throws IOException {
         if (!Files.isRegularFile(getPath().resolve(path)))
             return null;
 

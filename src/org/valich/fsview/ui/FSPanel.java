@@ -8,13 +8,12 @@ import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -23,13 +22,33 @@ import java.util.logging.Logger;
  * Created by valich on 23.03.14.
  */
 final class FSPanel extends JPanel {
-    private final JTable table;
-    private final FSTableModel tableModel;
     private final FSReader<String> fsReader;
     private final JTextField textField;
+    private final JFrame previewFrame;
     private List<FileInfo> currentDirFiles;
+    private FileListView fileListView;
 
-    private SwingWorker<Collection<? extends FileInfo>, Void> changeDirWorker;
+    private SwingWorker<Collection<FileInfo>, Void> changeDirWorker;
+    private SwingWorker<JComponent, Void> previewFileWorker;
+
+
+
+    public enum ViewStyle {
+        TABLE {
+            @Override
+            public String getStyleName() {
+                return "Table";
+            }
+        },
+        PREVIEW {
+            @Override
+            public String getStyleName() {
+                return "Preview";
+            }
+        };
+
+        public abstract String getStyleName();
+    }
 
     public FSPanel() {
         super();
@@ -37,32 +56,89 @@ final class FSPanel extends JPanel {
         fsReader = new IncrementalCompositingFSReader();
         setCurrentDirFilesWithUp(fsReader.getDirectoryContents());
 
-        tableModel = new FSTableModel(currentDirFiles);
-        table = new JTable(tableModel);
-        setUpTable(table);
+        textField = new JTextField();
+        previewFrame = new JFrame("preview");
+        fileListView = null;
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        table.setFillsViewportHeight(true);
+        setFileListViewStyle(ViewStyle.TABLE);
+        setUpPreviewFrame();
+        setUpFileListListeners();
 
-        textField = getAddressBar();
 
         setLayout(new BorderLayout());
-        add(textField, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        add(getAddressBar(), BorderLayout.NORTH);
+        add(new JScrollPane(fileListView.getContainer()), BorderLayout.CENTER);
 
         this.setVisible(true);
     }
 
-    private JTextField getAddressBar() {
-        final JTextField result = new JTextField(fsReader.getWorkingDirectory());
-        result.addActionListener(new ActionListener() {
+    private void setFileListViewStyle(ViewStyle style) {
+        if (style == ViewStyle.TABLE) {
+            fileListView = new TableFileListView();
+        } else {
+            //
+        }
+    }
+
+    private void setUpPreviewFrame() {
+        previewFrame.setLayout(new BorderLayout());
+        previewFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        previewFrame.setAlwaysOnTop(true);
+        previewFrame.setResizable(true);
+        previewFrame.setMinimumSize(new Dimension(200, 200));
+        previewFrame.setMaximumSize(new Dimension(800, 800));
+        previewFrame.setUndecorated(true);
+
+        previewFrame.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_SPACE:
+                    case KeyEvent.VK_ESCAPE:
+                        if (previewFileWorker != null)
+                            previewFileWorker.cancel(true);
+                        if (previewFrame.isVisible()) {
+                            previewFrame.setVisible(false);
+                            previewFrame.getContentPane().removeAll();
+                        }
+                        break;
+                }
+            }
+        });
+    }
+
+    private JComponent getAddressBar() {
+        textField.setText(fsReader.getWorkingDirectory());
+        textField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String newDir = result.getText();
+                String newDir = textField.getText();
                 processChangeDir(newDir);
             }
         });
-        return result;
+
+//        JLayeredPane pane = new JLayeredPane();
+//        pane.setLayout(new GridLayout(2, 2));
+
+        JToolBar toolBar = new JToolBar(SwingConstants.HORIZONTAL);
+        toolBar.setFloatable(false);
+        toolBar.setRollover(true);
+
+        JButton stopButton = new JButton("X");
+        stopButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (changeDirWorker != null) {
+                    Logger.getLogger("test").info("stopping!");
+                    changeDirWorker.cancel(true);
+                }
+            }
+        });
+
+        toolBar.add(textField);
+        toolBar.add(stopButton);
+
+        return toolBar;
     }
 
     private synchronized void setCurrentDirFilesWithUp(Collection<? extends FileInfo> files) {
@@ -71,41 +147,47 @@ final class FSPanel extends JPanel {
         currentDirFiles.addAll(files);
     }
 
-    private void setUpTable(final JTable table) {
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setRowSelectionAllowed(true);
-        table.setAutoCreateRowSorter(true);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-        for (int i = 0; i < 3; ++i) {
-            TableColumn col = table.getColumnModel().getColumn(i);
-            col.setPreferredWidth(i == 0 ? 200 : 50);
-        }
-
-        table.addMouseListener(new MouseAdapter() {
+    private void setUpFileListListeners() {
+        fileListView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 // Left-button double-click
                 if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
-                    processChangeDir(getSelectedFile().getName());
+                    FileInfo f = fileListView.getSelectedFile();
+                    if (f == null)
+                        return;
+                    processChangeDir(f.getName());
+                }
+            }
+        });
+        fileListView.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                FileInfo f = fileListView.getSelectedFile();
+                if (f == null)
+                    return;
+
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_SPACE:
+                        processPreviewFile(f.getName());
+                        break;
+                    case KeyEvent.VK_ENTER:
+                        processChangeDir(f.getName());
+                        break;
                 }
             }
         });
     }
 
-    private synchronized FileInfo getSelectedFile() {
-        int selectedRow = table.convertRowIndexToModel(table.getSelectedRow());
-        return currentDirFiles.get(selectedRow);
-    }
-
     private void processChangeDir(final String fileName) {
         Logger.getLogger("test").fine("cd " + fileName);
 
-        if (changeDirWorker != null) {
+        if (changeDirWorker != null)
             changeDirWorker.cancel(true);
-        }
-        changeDirWorker = new SwingWorker<Collection<? extends FileInfo>, Void>() {
+
+        changeDirWorker = new SwingWorker<Collection<FileInfo>, Void>() {
             @Override
-            protected Collection<? extends FileInfo> doInBackground() throws Exception {
+            protected Collection<FileInfo> doInBackground() throws Exception {
                 if (fsReader.changeDirectory(fileName)) {
                     return fsReader.getDirectoryContents();
                 }
@@ -115,18 +197,19 @@ final class FSPanel extends JPanel {
             @Override
             public void done() {
                 try {
-                    Collection<? extends FileInfo> result = get();
-                    if (result == null)
+                    Collection<FileInfo> result = get();
+                    if (result == null) {
+                        Logger.getLogger("test").warning("cd failed");
                         return; // do nothing
+                    }
 
                     setCurrentDirFilesWithUp(fsReader.getDirectoryContents());
-                    tableModel.setTableData(currentDirFiles);
+                    fileListView.setDirectoryContents(currentDirFiles);
 
                     String newDir = fsReader.getWorkingDirectory();
                     textField.setText(newDir);
                     Logger.getLogger("test").fine("went to: " + newDir);
-                } catch (InterruptedException e) {
-                } catch (CancellationException e) {
+                } catch (InterruptedException | CancellationException e) {
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
@@ -145,93 +228,69 @@ final class FSPanel extends JPanel {
 //        }
     }
 
-    final static class FSTableModel extends AbstractTableModel {
-        private final String[] COLUMN_NAMES = {"Name", "Ext", "Size"};
-        private List<FileInfo> tableData;
+    private void processPreviewFile(final String fileName) {
+        Logger.getLogger("test").fine("preview " + fileName);
 
+        if (previewFileWorker != null)
+            previewFileWorker.cancel(true);
+        final JLabel fuckingLabel = new JLabel("Loading");
 
-        public FSTableModel(List<FileInfo> tableData) {
-            this.tableData = tableData;
-        }
+        previewFileWorker = new SwingWorker<JComponent, Void>() {
+            @Override
+            protected JComponent doInBackground() throws Exception {
+                FileInfo f = fsReader.getFileByPath(fileName);
+                InputStream is = fsReader.retrieveFileInputStream(fileName);
+                if (f == null || is == null)
+                    return null;
 
-        public synchronized void setTableData(List<FileInfo> tableData) {
-            this.tableData = tableData;
-            fireTableDataChanged();
-        }
-
-        @Override
-        public int getRowCount() {
-            return tableData.size();
-        }
-
-        @Override
-        public int getColumnCount() {
-            return 3;
-        }
-
-        @Override
-        public Object getValueAt(int rowIndex, int columnIndex) {
-            if (rowIndex >= tableData.size())
-                return null;
-
-            FileInfo fileInfo = tableData.get(rowIndex);
-            switch (columnIndex) {
-                case 0:
-                    return getName(fileInfo);
-                case 1:
-                    return getExtension(fileInfo);
-                case 2:
-                    return getSize(fileInfo);
+                JComponent result;
+                try {
+                    result = PreviewComponentFactory.INSTANCE.getComponentForFile(f, is, previewFrame.getMaximumSize());
+                }
+                catch (IllegalArgumentException e) {
+                    Logger.getLogger("test").warning("not supported");
+                    return null;
+                }
+                return result;
             }
 
-            return null;
-        }
+            @Override
+            public void done() {
+                try {
+                    JComponent result = get();
 
-        @Override
-        public Class getColumnClass(int c) {
-            return getValueAt(0, c).getClass();
-        }
+                    synchronized (previewFrame) {
+                        JComponent newComp;
+                        if (result == null) {
+                            newComp = new JLabel("FAILED");
+                        } else {
+                            newComp = result;
+                        }
 
-        @Override
-        public String getColumnName(int coln) {
-            return COLUMN_NAMES[coln];
-        }
-
-        private static String getName(FileInfo f) {
-            String name = f.getName();
-            if (name.charAt(0) == '.')
-                return name;
-
-            int point = name.lastIndexOf(".");
-            if (point == -1)
-                point = name.length();
-
-            if (f.getAttributes().contains(FileInfo.FileAttribute.IS_REGULAR_FILE))
-                return name.substring(0, point);
-            else
-                return name;
-        }
-
-        private static String getExtension(FileInfo f) {
-            if (f.getAttributes().contains(FileInfo.FileAttribute.IS_REGULAR_FILE)) {
-                String name = f.getName();
-                if (name.charAt(0) == '.')
-                    return "";
-
-                int point = name.lastIndexOf(".");
-                if (point == -1)
-                    return "";
-                else
-                    return name.substring(point + 1);
+                        updateContents(previewFrame, newComp);
+                        previewFrame.setLocationRelativeTo(fileListView.getContainer());
+                    }
+                } catch (InterruptedException | CancellationException e) {
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
             }
-            else if (f.getAttributes().contains(FileInfo.FileAttribute.IS_DIRECTORY))
-                return "<DIR>";
-            else
-                return "";
-        }
+        };
 
-        private static Long getSize(FileInfo f) {
-            return f.getSize();
+        synchronized (previewFrame) {
+            updateContents(previewFrame, fuckingLabel);
+            previewFrame.setVisible(true);
         }
+        previewFileWorker.execute();
     }
+
+    private void updateContents(JFrame frame, JComponent comp) {
+        frame.getContentPane().removeAll();
+        frame.getContentPane().add(comp, BorderLayout.CENTER);
+        frame.pack();
+        frame.revalidate();
+//        frame.update(frame.getGraphics());
+    }
+
+
 }

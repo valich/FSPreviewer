@@ -1,5 +1,7 @@
 package org.valich.fsview.fsreader;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.nio.file.*;
 
 /**
@@ -9,11 +11,12 @@ abstract class AbstractSimpleFSReader implements SimpleFSReader {
     private final Path root;
     private Path path;
 
+    @NotNull
     @Override public synchronized Path getWorkingDirectory() {
         return path;
     }
 
-    @Override public synchronized boolean changeDirectory(Path path) {
+    @Override public synchronized boolean changeDirectory(@NotNull Path path) {
         assert this.path.isAbsolute();
 
         Path resolved = PathHelper.resolveWithoutGoingDown(this.path, path);

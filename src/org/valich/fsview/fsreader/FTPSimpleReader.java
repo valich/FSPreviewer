@@ -2,6 +2,7 @@ package org.valich.fsview.fsreader;
 
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.jetbrains.annotations.NotNull;
 import org.valich.fsview.FileInfo;
 
 import java.io.IOException;
@@ -13,24 +14,20 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 
-/**
- * Created by valich on 21.03.14.
- */
 final class FTPSimpleReader extends AbstractSimpleFSReader {
-    private final String baseUri;
     private FTPClient client;
 
-    FTPSimpleReader(URI uri) throws IOException, URISyntaxException {
+    FTPSimpleReader(@NotNull URI uri) throws IOException, URISyntaxException {
         super(FileSystems.getFileSystem(new URI("file:///")));
 
-        baseUri = uri.getAuthority();
+        String baseUri = uri.getAuthority();
 
         client = new FTPClient();
         client.connect(baseUri);
         client.login("anonymous", "12345");
     }
 
-    @Override public synchronized boolean changeDirectory(Path path) {
+    @Override public synchronized boolean changeDirectory(@NotNull Path path) {
         try {
             if (!client.changeWorkingDirectory(path.toString())) {
                 return false;
@@ -43,7 +40,8 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
         return super.changeDirectory(path);
     }
 
-    private Collection<FileInfo> convertFTPList(FTPFile[] ftpFiles) {
+    @NotNull
+    private Collection<FileInfo> convertFTPList(@NotNull FTPFile[] ftpFiles) {
         Collection<FileInfo> result = new ArrayList<>();
         for (FTPFile f : ftpFiles) {
             result.add(FileInfo.valueOf(f));
@@ -51,12 +49,14 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
         return result;
     }
 
+    @NotNull
     @Override
-    public Collection<? extends FileInfo> getDirectoryContents() {
+    public Collection<FileInfo> getDirectoryContents() {
         Collection<FileInfo> result = new ArrayList<>();
 
         try {
-            result.addAll(convertFTPList(client.listDirectories()));
+            client.enterLocalPassiveMode();
+//            result.addAll(convertFTPList(client.listDirectories()));
             result.addAll(convertFTPList(client.listFiles()));
         }
         catch (IOException e) {
@@ -68,9 +68,13 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
     }
 
     @Override
-    public FileInfo getFileByPath(Path path) {
+    public FileInfo getFileByPath(@NotNull Path path) {
         try {
-            return FileInfo.valueOf(client.mlistFile(path.toString()));
+            client.enterLocalPassiveMode();
+            FTPFile[] result = client.listFiles(path.toString());
+            if (result.length != 1)
+                return null;
+            return FileInfo.valueOf(result[0]);
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -78,8 +82,9 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
     }
 
     @Override
-    public InputStream retrieveFileInputStream(Path path) {
+    public InputStream retrieveFileInputStream(@NotNull Path path) {
         try {
+            client.enterLocalPassiveMode();
             return client.retrieveFileStream(path.toString());
         } catch (IOException e) {
             e.printStackTrace();

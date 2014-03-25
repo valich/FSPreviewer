@@ -1,5 +1,7 @@
 package org.valich.fsview.fsreader;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -45,7 +47,8 @@ public enum SimpleFSReaderFactory {
         return false;
     }
 
-    public SimpleFSReader getReaderForFile(Path pathToFile) throws IllegalArgumentException, IOException {
+    @NotNull
+    public SimpleFSReader getReaderForFile(@NotNull Path pathToFile) throws IllegalArgumentException, IOException {
         if (!Files.isRegularFile(pathToFile))
             throw new IllegalArgumentException(pathToFile.toString() + " is not file");
 
@@ -65,6 +68,7 @@ public enum SimpleFSReaderFactory {
                 return fileName.matches(".*\\.zip");
             }
 
+            @NotNull
             @Override
             public SimpleFSReader getFileReader(Path path) throws IOException {
                 return new ZipSimpleReader(path);

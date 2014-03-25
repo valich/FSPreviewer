@@ -1,6 +1,8 @@
 package org.valich.fsview;
 
 import org.apache.commons.net.ftp.FTPFile;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +25,7 @@ public final class FileInfo {
     private EnumSet<FileAttribute> attributes;
     private long size;
 
+    @NotNull
     public static final FileInfo UP_DIR = new FileInfo("..");
     static {
         UP_DIR.setAttribute(IS_DIRECTORY, true);
@@ -37,17 +40,19 @@ public final class FileInfo {
         this.size = -1;
     }
 
-    private void setAttribute(FileAttribute attr, boolean setTrue) {
+    private void setAttribute(@NotNull FileAttribute attr, boolean setTrue) {
         if (setTrue)
             attributes.add(attr);
         else
             attributes.remove(attr);
     }
 
+    @NotNull
     public String getName() {
         return name;
     }
 
+    @NotNull
     public EnumSet<FileAttribute> getAttributes() {
         return attributes;
     }
@@ -60,6 +65,7 @@ public final class FileInfo {
         return String.format("File:{name=%s, size=%d, attributes=%s}", name, size, attributes);
     }
 
+    @Nullable
     public static FileInfo valueOf(File file) {
         if (file == null)
             return null;
@@ -72,6 +78,7 @@ public final class FileInfo {
         return result;
     }
 
+    @Nullable
     public static FileInfo valueOf(Path file) {
         if (file == null)
             return null;
@@ -92,6 +99,7 @@ public final class FileInfo {
         return result;
     }
 
+    @Nullable
     public static FileInfo valueOf(FTPFile file) {
         if (file == null)
             return null;

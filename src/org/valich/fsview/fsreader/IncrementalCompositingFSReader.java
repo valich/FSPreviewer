@@ -1,11 +1,10 @@
 package org.valich.fsview.fsreader;
 
+import org.jetbrains.annotations.NotNull;
 import org.valich.fsview.FileInfo;
-import sun.java2d.pipe.SpanShapeRenderer;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,13 +42,14 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         baseUri = other.baseUri;
     }
 
+    @NotNull
     @Override
-    public Collection<? extends FileInfo> getDirectoryContents() {
+    public Collection<FileInfo> getDirectoryContents() {
         return readerStack.peek().getDirectoryContents();
     }
 
     @Override
-    public FileInfo getFileByPath(String pathName) {
+    public FileInfo getFileByPath(@NotNull String pathName) {
         Path relative = getReadOnlyRelativePath(pathName);
         if (relative != null) {
             return readerStack.peek().getFileByPath(relative);
@@ -61,7 +61,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
     }
 
     @Override
-    public synchronized boolean changeDirectory(String pathName) {
+    public synchronized boolean changeDirectory(@NotNull String pathName) {
         IncrementalCompositingFSReader mock = new IncrementalCompositingFSReader(this);
         if (mock.updateStackForPath(pathName)) {
             this.readerStack = mock.readerStack;
@@ -72,6 +72,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return false;
     }
 
+    @NotNull
     @Override
     public String getWorkingDirectory() {
         StringBuilder sb = new StringBuilder(baseUri);
@@ -87,7 +88,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
     }
 
     @Override
-    public InputStream retrieveFileInputStream(String pathName) throws IOException {
+    public InputStream retrieveFileInputStream(@NotNull String pathName) throws IOException {
         Path relative = getReadOnlyRelativePath(pathName);
         if (relative != null) {
             return readerStack.peek().retrieveFileInputStream(relative);

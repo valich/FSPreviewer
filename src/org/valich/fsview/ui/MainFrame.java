@@ -3,6 +3,8 @@ package org.valich.fsview.ui;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Handler;
@@ -14,7 +16,8 @@ import java.util.logging.Logger;
  * Created by valich on 23.03.14.
  */
 public final class MainFrame extends JFrame {
-    private JComponent panelHolder;
+    private final Logger logger = Logger.getLogger("test");
+    private final JComponent panelHolder;
 
     private List<FSPanel> panelList = new ArrayList<>();
 
@@ -34,7 +37,6 @@ public final class MainFrame extends JFrame {
         addPanel();
         addPanel();
 
-//        setSize(800, 600);
         pack();
     }
 
@@ -43,10 +45,41 @@ public final class MainFrame extends JFrame {
         JMenuBar menuBar = new JMenuBar();
 
         JMenu mainMenu = new JMenu("Main");
+
+        createRadioButtons(mainMenu);
+
+
         mainMenu.add(new JMenuItem("Exit"));
         menuBar.add(mainMenu);
 
         return menuBar;
+    }
+
+    private void createRadioButtons(JMenu mainMenu) {
+        final ButtonGroup buttonGroup = new ButtonGroup();
+        JRadioButtonMenuItem radioItem;
+
+        ActionListener selectListener = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selected = e.getActionCommand();
+                for (FSPanel panel : panelList) {
+//                    panel.setFilesView(selected);
+                }
+            }
+        };
+
+        radioItem = new JRadioButtonMenuItem("List view", true);
+        radioItem.setActionCommand("list");
+        radioItem.addActionListener(selectListener);
+        buttonGroup.add(radioItem);
+        mainMenu.add(radioItem);
+
+        radioItem = new JRadioButtonMenuItem("Icon view", false);
+        radioItem.setActionCommand("icon");
+        radioItem.addActionListener(selectListener);
+        buttonGroup.add(radioItem);
+        mainMenu.add(radioItem);
     }
 
     private JComponent getLogPanel() {
