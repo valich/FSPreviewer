@@ -120,18 +120,10 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
                 return null;
 
             String remaining = pathName.substring(base.length());
-            for (Path p : pathPartsStack) {
-                // Excluding the topmost path
-                if (p == pathPartsStack.peek())
-                    break;
 
-                String lca = PathHelper.LCA(p, remaining);
-                // Branches not in the outer reader
-                if (!p.endsWith(lca))
-                    return null;
-
-                remaining = remaining.substring(lca.length());
-            }
+            remaining = checkBranchesInTopmostAndReturnTopmostPart(remaining);
+            if (remaining == null)
+                return null;
 
             relative = PathHelper.relativeFromAbsolute(pathPartsStack.peek(), remaining);
         } else {
@@ -144,6 +136,23 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return relative;
     }
 
+    private String checkBranchesInTopmostAndReturnTopmostPart(String remaining) {
+        for (Path p : pathPartsStack) {
+            // Excluding the topmost path
+            if (p == pathPartsStack.peek())
+                break;
+
+            String lca = PathHelper.LCA(p, remaining);
+            // Branches not in the outer reader
+            if (!p.endsWith(lca)) {
+                remaining = null;
+                break;
+            }
+
+            remaining = remaining.substring(lca.length());
+        }
+        return remaining;
+    }
 
 
     private void popTopReader() {
@@ -200,98 +209,132 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
             final String delim = root.getFileSystem().getSeparator();
             final String[] parts = pathName.split(delim);
 
-            Path resolved = readerStack.peek().getWorkingDirectory().normalize();
-            boolean clearedTopReader = false;
-            int passed;
-            for (passed = 0; passed < parts.length; ++passed) {
-                if (!parts[passed].startsWith(".."))
-                    break;
-                if (resolved.equals(root)) {
-                    clearedTopReader = true;
-                    break;
-                }
+            Path curDir = readerStack.peek().getWorkingDirectory().normalize();
+            int partsCount = countPartsToExitTopReader(root, parts, curDir);
 
-                resolved = resolved.resolve("..").normalize();
-            }
-
-            if (!clearedTopReader)
+            // Didn't clear top reader
+            if (partsCount == -1)
                 break;
 
             popTopReader();
-            if (parts[passed].length() == 2)
-                passed++;
+            if (parts[partsCount].length() == 2)
+                partsCount++;
             else
-                parts[passed] = parts[passed].substring(2 + 1);
+                parts[partsCount] = parts[partsCount].substring(2 + 1);
 
-            pathName = PathHelper.joinCollection(Arrays.asList(parts).subList(passed, parts.length), delim);
+            pathName = PathHelper.joinCollection(Arrays.asList(parts).subList(partsCount, parts.length), delim);
         }
 
         return pathName;
     }
 
-    private boolean buildStack(String pathName) {
-        if (/*PathHelper.isAbsolute(pathName) || */readerStack.isEmpty()) {
-//            assert readerStack.isEmpty() : "Initializing non-empty stack";
+    private int countPartsToExitTopReader(Path root, String[] parts, Path curDir) {
+        boolean reachedRoot = false;
 
-            String base = PathHelper.getBase(pathName);
-            baseUri = base;
-            pathName = pathName.substring(base.length());
+        int passed;
+        for (passed = 0; passed < parts.length; ++passed) {
+            if (!parts[passed].startsWith(".."))
+                break;
 
-            try {
-                readerStack.push(SimpleFSReaderFactory.INSTANCE.getReaderForBasePath(base));
-                pathPartsStack.push(readerStack.peek().getWorkingDirectory());
-            } catch (IOException e) {
-                e.printStackTrace();
-                return false;
+            if (curDir.equals(root)) {
+                reachedRoot = true;
+                break;
             }
+
+            curDir = curDir.resolve("..").normalize();
+        }
+
+        if (!reachedRoot)
+            return -1;
+
+        return passed;
+    }
+
+    private boolean buildStack(String pathName) {
+        if (readerStack.isEmpty()) {
+            pathName = createBaseReaderAndReturnRemaining(pathName);
+
+            if (pathName == null)
+                return false;
         }
 
         while (pathName.length() > 0) {
-            SimpleFSReader topReader = readerStack.peek();
-            Path p = topReader.getWorkingDirectory().getFileSystem().getPath(pathName);
+            pathName = createOneReaderAndReturnRemaining(pathName);
 
-            if (topReader.changeDirectory(p)) {
-                pathPartsStack.pop();
-                pathPartsStack.push(topReader.getWorkingDirectory());
-                return true;
-            }
-
-            int foundFileIndex = -1;
-            final int pathLen = p.getNameCount();
-            for (int taken = 1; taken <= pathLen; ++taken) {
-                Path prefixPath = PathHelper.getPrefixPath(p, taken);
-
-                FileInfo f = topReader.getFileByPath(prefixPath);
-                if (f != null && f.getAttributes().contains(FileInfo.FileAttribute.IS_REGULAR_FILE)) {
-                    foundFileIndex = taken;
-                    break;
-                }
-            }
-
-            if (foundFileIndex == -1)
+            if (pathName == null)
                 return false;
-
-            boolean changed = true;
-            if (foundFileIndex > 1)
-                changed = topReader.changeDirectory(PathHelper.getPrefixPath(p, foundFileIndex - 1));
-            assert changed;
-
-            pathPartsStack.pop();
-            pathPartsStack.push(topReader.getWorkingDirectory().resolve(p.getName(foundFileIndex - 1)));
-
-            SimpleFSReader nextReader = createReaderForFile(pathPartsStack.peek());
-            if (nextReader == null)
-                return false;
-
-            readerStack.push(nextReader);
-            pathPartsStack.push(nextReader.getWorkingDirectory());
-            if (foundFileIndex < pathLen)
-                pathName = p.subpath(foundFileIndex, pathLen).toString();
-            else
-                pathName = "";
         }
 
         return true;
+    }
+
+    private String createBaseReaderAndReturnRemaining(String pathName) {
+        String base = PathHelper.getBase(pathName);
+        baseUri = base;
+        pathName = pathName.substring(base.length());
+
+        try {
+            readerStack.push(SimpleFSReaderFactory.INSTANCE.getReaderForBasePath(base));
+            pathPartsStack.push(readerStack.peek().getWorkingDirectory());
+        } catch (IOException e) {
+            Logger.getLogger("test").warning("error creating base reader:" + e.getCause());
+            return null;
+        }
+
+        return pathName;
+    }
+
+    private String createOneReaderAndReturnRemaining(String pathName) {
+        SimpleFSReader topReader = readerStack.peek();
+        Path p = topReader.getWorkingDirectory().getFileSystem().getPath(pathName);
+
+        if (topReader.changeDirectory(p)) {
+            pathPartsStack.pop();
+            pathPartsStack.push(topReader.getWorkingDirectory());
+            return "";
+        }
+
+        // From here we understand that in the end we'll need more than one reader
+        // To create it we need regular file to make reader from
+        int foundFileIndex = findFirstRegularFileInPath(topReader, p);
+        if (foundFileIndex == -1)
+            return null;
+
+        if (foundFileIndex > 1) {
+            boolean chDirSuccess = topReader.changeDirectory(PathHelper.getPrefixPath(p, foundFileIndex - 1));
+            assert chDirSuccess : "We could only switch to another reader here but could not chdir";
+        }
+
+        pathPartsStack.pop();
+        pathPartsStack.push(topReader.getWorkingDirectory().resolve(p.getName(foundFileIndex - 1)));
+
+        SimpleFSReader nextReader = createReaderForFile(pathPartsStack.peek());
+        if (nextReader == null)
+            return null;
+
+        readerStack.push(nextReader);
+        pathPartsStack.push(nextReader.getWorkingDirectory());
+
+        if (foundFileIndex < p.getNameCount())
+            return p.subpath(foundFileIndex, p.getNameCount()).toString();
+        else
+            return "";
+    }
+
+    private int findFirstRegularFileInPath(SimpleFSReader topReader, Path p) {
+        final int pathLen = p.getNameCount();
+
+        int foundFileIndex = -1;
+        for (int taken = 1; taken <= pathLen; ++taken) {
+            Path prefixPath = PathHelper.getPrefixPath(p, taken);
+
+            FileInfo f = topReader.getFileByPath(prefixPath);
+            if (f != null && f.getAttributes().contains(FileInfo.FileAttribute.IS_REGULAR_FILE)) {
+                foundFileIndex = taken;
+                break;
+            }
+        }
+        return foundFileIndex;
     }
 
     private SimpleFSReader createReaderForFile(Path path) {
