@@ -2,10 +2,10 @@ package org.valich.fsview;
 
 import org.apache.commons.net.ftp.FTPFile;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.EnumSet;
 
@@ -65,32 +65,22 @@ public final class FileInfo {
         return String.format("File:{name=%s, size=%d, attributes=%s}", name, size, attributes);
     }
 
-    @Nullable
-    public static FileInfo valueOf(Path file) {
-        if (file == null)
-            return null;
+    @NotNull
+    public static FileInfo valueOf(@NotNull Path file) throws IOException {
         if (!Files.exists(file))
-            return null;
+            throw new NoSuchFileException("No such file");
 
         FileInfo result = new FileInfo(file.getFileName().toString());
         result.setAttribute(IS_DIRECTORY, Files.isDirectory(file));
         result.setAttribute(IS_REGULAR_FILE, Files.isRegularFile(file));
         result.setAttribute(IS_SYMLINK, Files.isSymbolicLink(file));
-        try {
-            result.size = Files.size(file);
-        } catch (IOException e) {
-//            e.printStackTrace();
-            result.size = -1;
-        }
+        result.size = Files.size(file);
 
         return result;
     }
 
-    @Nullable
-    public static FileInfo valueOf(FTPFile file) {
-        if (file == null)
-            return null;
-
+    @NotNull
+    public static FileInfo valueOf(@NotNull FTPFile file) {
         FileInfo result = new FileInfo(file.getName());
         result.setAttribute(IS_DIRECTORY, file.isDirectory());
         result.setAttribute(IS_REGULAR_FILE, file.isFile());

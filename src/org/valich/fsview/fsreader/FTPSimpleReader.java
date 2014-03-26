@@ -27,17 +27,40 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
         client.login("anonymous", "12345");
     }
 
-    @Override public synchronized boolean changeDirectory(@NotNull Path path) {
-        try {
-            if (!client.changeWorkingDirectory(path.toString())) {
-                return false;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+    @Override public synchronized boolean changeDirectory(@NotNull Path path) throws IOException {
+        if (!client.changeWorkingDirectory(path.toString())) {
             return false;
         }
 
         return super.changeDirectory(path);
+    }
+
+    @NotNull
+    @Override
+    public Collection<FileInfo> getDirectoryContents() throws IOException {
+        Collection<FileInfo> result = new ArrayList<>();
+
+        client.enterLocalPassiveMode();
+        result.addAll(convertFTPList(client.listFiles()));
+
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public FileInfo getFileByPath(@NotNull Path path) throws IOException {
+        client.enterLocalPassiveMode();
+        FTPFile[] result = client.listFiles(path.toString());
+        if (result.length == 0)
+            throw new IOException("There is no file linked to that path");
+        return FileInfo.valueOf(result[0]);
+    }
+
+    @NotNull
+    @Override
+    public InputStream retrieveFileInputStream(@NotNull Path path) throws IOException {
+        client.enterLocalPassiveMode();
+        return client.retrieveFileStream(path.toString());
     }
 
     @NotNull
@@ -49,46 +72,4 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
         return result;
     }
 
-    @NotNull
-    @Override
-    public Collection<FileInfo> getDirectoryContents() {
-        Collection<FileInfo> result = new ArrayList<>();
-
-        try {
-            client.enterLocalPassiveMode();
-//            result.addAll(convertFTPList(client.listDirectories()));
-            result.addAll(convertFTPList(client.listFiles()));
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            return result;
-        }
-
-        return result;
-    }
-
-    @Override
-    public FileInfo getFileByPath(@NotNull Path path) {
-        try {
-            client.enterLocalPassiveMode();
-            FTPFile[] result = client.listFiles(path.toString());
-            if (result.length != 1)
-                return null;
-            return FileInfo.valueOf(result[0]);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    @Override
-    public InputStream retrieveFileInputStream(@NotNull Path path) {
-        try {
-            client.enterLocalPassiveMode();
-            return client.retrieveFileStream(path.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 }

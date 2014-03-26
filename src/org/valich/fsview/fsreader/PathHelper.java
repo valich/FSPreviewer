@@ -1,5 +1,8 @@
 package org.valich.fsview.fsreader;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -9,7 +12,8 @@ import java.util.Collection;
 public final class PathHelper {
     private PathHelper() {}
 
-    public static String getProtocol(String pathName) {
+    @Nullable
+    public static String getProtocol(@NotNull String pathName) {
         int protocolPos = pathName.indexOf("://");
         if (protocolPos != -1 && protocolPos < pathName.indexOf("/")) {
             // Like `file:/'
@@ -17,31 +21,8 @@ public final class PathHelper {
         }
         return null;
     }
-/*
-    public static URI asURI(String pathName) {
-        return asURI(pathName, null);
-    }
 
-    public static URI asURI(String pathName, String protocolIfNone) {
-        if (protocolIfNone == null)
-            protocolIfNone = "file:/";
-
-        String protocol = getProtocol(pathName);
-
-        if (protocol == null)
-            pathName = protocolIfNone + "/" + pathName;
-
-        try {
-            return new URI(pathName);
-        }
-        catch (URISyntaxException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-    */
-
-    public static boolean isAbsolute(String pathName) {
+    public static boolean isAbsolute(@NotNull String pathName) {
         String protocol = getProtocol(pathName);
 
         if (protocol != null)
@@ -50,7 +31,8 @@ public final class PathHelper {
         return Paths.get(pathName).isAbsolute();
     }
 
-    public static String LCA(Path a, String b) {
+    @NotNull
+    public static String LCA(@NotNull Path a, @NotNull String b) {
         String delim = a.getFileSystem().getSeparator();
         String[] parts = b.split(delim);
 
@@ -74,16 +56,19 @@ public final class PathHelper {
         return answer;
     }
 
-    public static Path toCorrespondingPath(Path path, String pathName) {
+    @NotNull
+    public static Path toCorrespondingPath(@NotNull Path path, @NotNull String pathName) {
         return path.getFileSystem().getPath(pathName).normalize();
     }
 
-    public static Path relativeFromAbsolute(Path path, String absolute) {
+    @NotNull
+    public static Path relativeFromAbsolute(@NotNull Path path, @NotNull String absolute) {
         Path absolutePath = toCorrespondingPath(path, absolute);
         return path.relativize(absolutePath).normalize();
     }
 
-    public static String getBase(String pathName) {
+    @NotNull
+    public static String getBase(@NotNull String pathName) {
         String protocol = getProtocol(pathName);
         if (protocol == null) {
             return "";
@@ -99,7 +84,8 @@ public final class PathHelper {
         return uri.getScheme() + "://" + uri.getAuthority();
     }
 
-    public static Path resolveWithoutGoingDown(Path initial, Path relative) {
+    @Nullable
+    public static Path resolveWithoutGoingDown(@NotNull Path initial, @NotNull Path relative) {
         if (relative.isAbsolute())
             return relative;
 
@@ -116,7 +102,8 @@ public final class PathHelper {
         return resolved;
     }
 
-    public static Path getPrefixPath(Path p, int prefixLen) {
+    @NotNull
+    public static Path getPrefixPath(@NotNull Path p, int prefixLen) {
         if (prefixLen == 0)
             if (p.isAbsolute())
                 return p.getRoot();
@@ -133,7 +120,8 @@ public final class PathHelper {
             return result;
     }
 
-    public static String joinCollection(Collection<String> arr, String delim) {
+    @NotNull
+    public static String joinCollection(@NotNull Collection<String> arr, @NotNull String delim) {
         StringBuilder sb = new StringBuilder();
         boolean isFirst = true;
         for (String s : arr) {

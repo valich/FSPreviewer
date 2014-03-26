@@ -2,7 +2,10 @@ package org.valich.fsview.fsreader;
 
 import org.jetbrains.annotations.NotNull;
 
+import javax.activation.UnsupportedDataTypeException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -11,7 +14,8 @@ import java.nio.file.Path;
 enum SimpleFSReaderFactory {
     INSTANCE;
 
-    public SimpleFSReader getReaderForBasePath(String path) throws IllegalArgumentException, IOException {
+    @NotNull
+    public SimpleFSReader getReaderForBasePath(@NotNull String path) throws IOException {
         String protocol = PathHelper.getProtocol(path);
 
         if (protocol == null) {
@@ -22,21 +26,21 @@ enum SimpleFSReaderFactory {
         try {
             uri = new URI(path);
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Cannot build URI", e);
+            throw new MalformedURLException("Cannot build URI");
         }
 
         if (uri.getScheme().equals("ftp")) {
             try {
                 return new FTPSimpleReader(uri);
             } catch (URISyntaxException e) {
-                throw new IllegalArgumentException("Bad URI syntax!", e);
+                throw new MalformedURLException("Bad URI syntax!");
             }
         }
 
-        throw new IllegalArgumentException(path + "is not supported");
+        throw new IOException(path + "is not supported");
     }
 
-    public boolean isSupportedFileName(String fileName) {
+    public boolean isSupportedFileName(@NotNull String fileName) {
         for (SupportedFiles fType : SupportedFiles.values())
             if (fType.isSupportedFileName(fileName))
                 return true;
@@ -45,9 +49,9 @@ enum SimpleFSReaderFactory {
     }
 
     @NotNull
-    public SimpleFSReader getReaderForFile(@NotNull Path pathToFile) throws IllegalArgumentException, IOException {
+    public SimpleFSReader getReaderForFile(@NotNull Path pathToFile) throws IOException {
         if (!Files.isRegularFile(pathToFile))
-            throw new IllegalArgumentException(pathToFile.toString() + " is not file");
+            throw new FileNotFoundException("not a file");
 
         String fileName = pathToFile.getFileName().toString();
 
@@ -55,19 +59,19 @@ enum SimpleFSReaderFactory {
             if (fType.isSupportedFileName(fileName))
                 return fType.getFileReader(pathToFile);
 
-        throw new IllegalArgumentException(fileName + " is not kinda supported");
+        throw new UnsupportedDataTypeException(fileName + " is not kinda supported");
     }
 
     public enum SupportedFiles {
         ZIP {
             @Override
-            public boolean isSupportedFileName(String fileName) {
+            public boolean isSupportedFileName(@NotNull String fileName) {
                 return fileName.matches(".*\\.zip");
             }
 
             @NotNull
             @Override
-            public SimpleFSReader getFileReader(Path path) throws IOException {
+            public SimpleFSReader getFileReader(@NotNull Path path) throws IOException {
                 return new ZipSimpleReader(path);
             }
         };

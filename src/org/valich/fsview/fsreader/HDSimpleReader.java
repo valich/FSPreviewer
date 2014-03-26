@@ -3,6 +3,7 @@ package org.valich.fsview.fsreader;
 import org.jetbrains.annotations.NotNull;
 import org.valich.fsview.FileInfo;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.DirectoryStream;
@@ -11,14 +12,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.logging.Logger;
 
 final class HDSimpleReader extends AbstractSimpleFSReader {
     HDSimpleReader() {
         super(FileSystems.getDefault());
     }
 
-    @Override public boolean changeDirectory(@NotNull Path path) {
+    @Override public boolean changeDirectory(@NotNull Path path) throws IOException {
         if (!Files.isDirectory(getPath().resolve(path)))
             return false;
 
@@ -27,32 +27,30 @@ final class HDSimpleReader extends AbstractSimpleFSReader {
 
     @NotNull
     @Override
-    public Collection<FileInfo> getDirectoryContents() {
-        assert Files.isDirectory(getPath()) : "Current directory is not directory " + getPath();
+    public Collection<FileInfo> getDirectoryContents() throws IOException {
+        assert Files.isDirectory(getPath()) : "Current directory is not directory ";
 
         Collection<FileInfo> result = new ArrayList<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(getPath())) {
-            for (Path entry : stream) {
-                result.add(FileInfo.valueOf(entry));
-            }
-        } catch (IOException e) {
-//            e.printStackTrace();
-            Logger.getLogger("test").warning("Could not open dir: " + getPath());
-            return result;
+        DirectoryStream<Path> stream = Files.newDirectoryStream(getPath());
+        for (Path entry : stream) {
+            result.add(FileInfo.valueOf(entry));
         }
+        stream.close();
 
         return result;
     }
 
+    @NotNull
     @Override
-    public FileInfo getFileByPath(@NotNull Path path) {
+    public FileInfo getFileByPath(@NotNull Path path) throws IOException {
         return FileInfo.valueOf(getPath().resolve(path));
     }
 
+    @NotNull
     @Override
     public InputStream retrieveFileInputStream(@NotNull Path path) throws IOException {
         if (!Files.isRegularFile(getPath().resolve(path)))
-            return null;
+            throw new FileNotFoundException("Not a file");
 
         return Files.newInputStream(getPath().resolve(path));
     }

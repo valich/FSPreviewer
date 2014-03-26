@@ -1,7 +1,6 @@
 package org.valich.fsview.fsreader;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.valich.fsview.FileInfo;
 
 import java.io.IOException;
@@ -18,24 +17,26 @@ public interface FSReader<T> {
     /**
      * lists files and directories contained in the current directory
      * @return collection of the files and dirs contained
+     * @throws java.io.IOException if some problem occurred while working with FS
      */
     @NotNull
-    Collection<FileInfo> getDirectoryContents();
+    Collection<FileInfo> getDirectoryContents() throws IOException;
 
     /**
      * returns metadata for specified file
      * @param pathName path to the file
-     * @return {@link org.valich.fsview.FileInfo} containing metadata or null if problem was encountered
+     * @return {@link org.valich.fsview.FileInfo} containing metadata
+     * @throws java.io.IOException if file could not be opened
      */
-    @Nullable
-    FileInfo getFileByPath(@NotNull T pathName);
+    @NotNull
+    FileInfo getFileByPath(@NotNull T pathName) throws IOException;
 
     /**
      * changes current directory to the specified by path
      * @param pathName path to the directory
      * @return true if operation succeeded and false otherwise
      */
-    boolean changeDirectory(@NotNull T pathName);
+    boolean changeDirectory(@NotNull T pathName) throws IOException;
 
     /**
      * pwd
@@ -47,9 +48,9 @@ public interface FSReader<T> {
     /**
      * Retrieves a stream with which one can read file contents
      * @param pathName path to the file which is to be read
-     * @return readable stream with file contents or null if problem was encountered
+     * @return readable stream with file contents
      * @throws java.io.IOException if file could not be opened for reading
      */
-    @Nullable
+    @NotNull
     InputStream retrieveFileInputStream(@NotNull T pathName) throws IOException;
 }

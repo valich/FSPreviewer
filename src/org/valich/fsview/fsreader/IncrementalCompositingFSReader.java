@@ -1,8 +1,11 @@
 package org.valich.fsview.fsreader;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.valich.fsview.FileInfo;
 
+import javax.activation.UnsupportedDataTypeException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileSystems;
@@ -36,7 +39,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         baseUri = "";
     }
 
-    private IncrementalCompositingFSReader(IncrementalCompositingFSReader other) {
+    private IncrementalCompositingFSReader(@NotNull IncrementalCompositingFSReader other) {
         for (SimpleFSReader reader : other.readerStack)
             readerStack.push(reader);
         for (Path p : other.pathPartsStack)
@@ -46,12 +49,13 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
 
     @NotNull
     @Override
-    public Collection<FileInfo> getDirectoryContents() {
+    public Collection<FileInfo> getDirectoryContents() throws IOException {
         return readerStack.peek().getDirectoryContents();
     }
 
+    @NotNull
     @Override
-    public FileInfo getFileByPath(@NotNull String pathName) {
+    public FileInfo getFileByPath(@NotNull String pathName) throws IOException {
         Path relative = getReadOnlyRelativePath(pathName);
         if (relative != null) {
             return readerStack.peek().getFileByPath(relative);
@@ -63,7 +67,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
     }
 
     @Override
-    public synchronized boolean changeDirectory(@NotNull String pathName) {
+    public synchronized boolean changeDirectory(@NotNull String pathName) throws IOException {
         IncrementalCompositingFSReader mock = new IncrementalCompositingFSReader(this);
         if (mock.updateStackForPath(pathName)) {
             this.readerStack = mock.readerStack;
@@ -79,9 +83,6 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
     public String getWorkingDirectory() {
         StringBuilder sb = new StringBuilder(baseUri);
 
-//        for (FSReader reader : readerStack) {
-//            sb.append(reader.getWorkingDirectory());
-//        }
         for (Path p : pathPartsStack) {
             sb.append(p.toString());
         }
@@ -89,6 +90,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return sb.toString();
     }
 
+    @NotNull
     @Override
     public InputStream retrieveFileInputStream(@NotNull String pathName) throws IOException {
         Path relative = getReadOnlyRelativePath(pathName);
@@ -101,7 +103,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return tmpReader.retrieveFileInputStream(pathName);
     }
 
-    private synchronized boolean updateStackForPath(String pathName) {
+    private synchronized boolean updateStackForPath(@NotNull String pathName) throws IOException {
 
         if (PathHelper.isAbsolute(pathName)) {
             pathName = clearStackToBranchingPointAbsolute(pathName);
@@ -112,7 +114,8 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return buildStack(pathName);
     }
 
-    private Path getReadOnlyRelativePath(String pathName) {
+    @Nullable
+    private Path getReadOnlyRelativePath(@NotNull String pathName) {
         final Path relative;
         if (PathHelper.isAbsolute(pathName)) {
             String base = PathHelper.getBase(pathName);
@@ -136,7 +139,8 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return relative;
     }
 
-    private String checkBranchesInTopmostAndReturnTopmostPart(String remaining) {
+    @Nullable
+    private String checkBranchesInTopmostAndReturnTopmostPart(@NotNull String remaining) {
         for (Path p : pathPartsStack) {
             // Excluding the topmost path
             if (p == pathPartsStack.peek())
@@ -145,15 +149,13 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
             String lca = PathHelper.LCA(p, remaining);
             // Branches not in the outer reader
             if (!p.endsWith(lca)) {
-                remaining = null;
-                break;
+                return null;
             }
 
             remaining = remaining.substring(lca.length());
         }
         return remaining;
     }
-
 
     private void popTopReader() {
         if (readerStack.isEmpty())
@@ -173,7 +175,8 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         }
     }
 
-    private String clearStackToBranchingPointAbsolute(String pathName) {
+    @NotNull
+    private String clearStackToBranchingPointAbsolute(@NotNull String pathName) {
         String base = PathHelper.getBase(pathName);
         if (!base.equals(baseUri)) {
             readerStack.clear();
@@ -203,7 +206,8 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return remaining;
     }
 
-    private String clearStackToBranchingPointRelative(String pathName) {
+    @NotNull
+    private String clearStackToBranchingPointRelative(@NotNull String pathName) {
         while (readerStack.size() > 0) {
             final Path root = pathPartsStack.peek().getRoot();
             final String delim = root.getFileSystem().getSeparator();
@@ -228,7 +232,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return pathName;
     }
 
-    private int countPartsToExitTopReader(Path root, String[] parts, Path curDir) {
+    private int countPartsToExitTopReader(@NotNull Path root, @NotNull String[] parts, @NotNull Path curDir) {
         boolean reachedRoot = false;
 
         int passed;
@@ -250,41 +254,36 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return passed;
     }
 
-    private boolean buildStack(String pathName) {
+    private boolean buildStack(@NotNull String pathName) throws IOException {
+        String remaining = pathName;
         if (readerStack.isEmpty()) {
-            pathName = createBaseReaderAndReturnRemaining(pathName);
-
-            if (pathName == null)
-                return false;
+            remaining = createBaseReaderAndReturnRemaining(remaining);
         }
 
-        while (pathName.length() > 0) {
-            pathName = createOneReaderAndReturnRemaining(pathName);
+        while (remaining.length() > 0) {
+            remaining = createOneReaderAndReturnRemaining(remaining);
 
-            if (pathName == null)
+            if (remaining == null)
                 return false;
         }
 
         return true;
     }
 
-    private String createBaseReaderAndReturnRemaining(String pathName) {
+    @NotNull
+    private String createBaseReaderAndReturnRemaining(@NotNull String pathName) throws IOException {
         String base = PathHelper.getBase(pathName);
         baseUri = base;
         pathName = pathName.substring(base.length());
 
-        try {
-            readerStack.push(SimpleFSReaderFactory.INSTANCE.getReaderForBasePath(base));
-            pathPartsStack.push(readerStack.peek().getWorkingDirectory());
-        } catch (IOException e) {
-            Logger.getLogger("test").warning("error creating base reader:" + e.getCause());
-            return null;
-        }
+        readerStack.push(SimpleFSReaderFactory.INSTANCE.getReaderForBasePath(base));
+        pathPartsStack.push(readerStack.peek().getWorkingDirectory());
 
         return pathName;
     }
 
-    private String createOneReaderAndReturnRemaining(String pathName) {
+    @Nullable
+    private String createOneReaderAndReturnRemaining(@NotNull String pathName) throws IOException {
         SimpleFSReader topReader = readerStack.peek();
         Path p = topReader.getWorkingDirectory().getFileSystem().getPath(pathName);
 
@@ -309,8 +308,6 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         pathPartsStack.push(topReader.getWorkingDirectory().resolve(p.getName(foundFileIndex - 1)));
 
         SimpleFSReader nextReader = createReaderForFile(pathPartsStack.peek());
-        if (nextReader == null)
-            return null;
 
         readerStack.push(nextReader);
         pathPartsStack.push(nextReader.getWorkingDirectory());
@@ -321,15 +318,21 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
             return "";
     }
 
-    private int findFirstRegularFileInPath(SimpleFSReader topReader, Path p) {
+    private int findFirstRegularFileInPath(@NotNull SimpleFSReader topReader, @NotNull Path p) throws IOException {
         final int pathLen = p.getNameCount();
 
         int foundFileIndex = -1;
         for (int taken = 1; taken <= pathLen; ++taken) {
             Path prefixPath = PathHelper.getPrefixPath(p, taken);
 
-            FileInfo f = topReader.getFileByPath(prefixPath);
-            if (f != null && f.getAttributes().contains(FileInfo.FileAttribute.IS_REGULAR_FILE)) {
+            FileInfo f;
+            try {
+                f = topReader.getFileByPath(prefixPath);
+            } catch (FileNotFoundException ignore) {
+                return -1;
+            }
+
+            if (f.getAttributes().contains(FileInfo.FileAttribute.IS_REGULAR_FILE)) {
                 foundFileIndex = taken;
                 break;
             }
@@ -337,27 +340,20 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return foundFileIndex;
     }
 
-    private SimpleFSReader createReaderForFile(Path path) {
-        try {
-            String fileName = path.getFileName().toString();
-            if (!SimpleFSReaderFactory.INSTANCE.isSupportedFileName(fileName)) {
-                return null;
-            }
+    @NotNull
+    private SimpleFSReader createReaderForFile(@NotNull Path path) throws IOException {
+        String fileName = path.getFileName().toString();
+        if (!SimpleFSReaderFactory.INSTANCE.isSupportedFileName(fileName))
+            throw new UnsupportedDataTypeException("No FSReader for this file");
 
-            Path newDir = Files.createTempDirectory("temp");
-            // file's path may be from different provider
-            Path tempFile = newDir.resolve(fileName);
-            InputStream is = readerStack.peek().retrieveFileInputStream(path);
-            if (is == null)
-                return null;
+        Path newDir = Files.createTempDirectory("temp");
+        // file's path may be from different provider
+        Path tempFile = newDir.resolve(fileName);
+        InputStream is = readerStack.peek().retrieveFileInputStream(path);
 
-            Logger.getLogger("test").fine("Temp file " + tempFile);
-            Files.copy(is, tempFile);
-            return SimpleFSReaderFactory.INSTANCE.getReaderForFile(tempFile);
-        } catch (IOException e) {
-            Logger.getLogger("test").warning("Error creating FSReader: " + e.toString());
-            return null;
-        }
+        Logger.getLogger("test").fine("Temp file " + tempFile);
+        Files.copy(is, tempFile);
+        return SimpleFSReaderFactory.INSTANCE.getReaderForFile(tempFile);
     }
 
 

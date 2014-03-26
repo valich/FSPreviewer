@@ -41,7 +41,7 @@ final class FSPanel extends JPanel {
         super();
 
         fsReader = new IncrementalCompositingFSReader();
-        setCurrentDirFilesWithUp(fsReader.getDirectoryContents());
+        updateCurrentDirFiles();
         previewFrame = new OuterPreviewFrame();
         curDirTextField = new JTextField();
         stopChDirButton = new JButton();
@@ -115,10 +115,16 @@ final class FSPanel extends JPanel {
         return toolBar;
     }
 
-    private synchronized void setCurrentDirFilesWithUp(Collection<? extends FileInfo> files) {
+    private synchronized void updateCurrentDirFiles() {
         currentDirFiles = new ArrayList<>();
         currentDirFiles.add(FileInfo.UP_DIR);
-        currentDirFiles.addAll(files);
+
+        try {
+            currentDirFiles.addAll(fsReader.getDirectoryContents());
+        } catch (IOException e) {
+            Logger.getLogger("test").warning("Exception while getting dir contents: " + e.getMessage());
+//            Logger.getLogger("test").warning(Arrays.toString(e.getStackTrace()));
+        }
     }
 
     private void setUpFileListListeners() {
@@ -173,11 +179,11 @@ final class FSPanel extends JPanel {
                 try {
                     Collection<FileInfo> result = get();
                     if (result == null) {
-                        Logger.getLogger("test").warning("cd failed");
+                        Logger.getLogger("test").warning("cd failed (false)");
                         return; // do nothing
                     }
 
-                    setCurrentDirFilesWithUp(fsReader.getDirectoryContents());
+                    updateCurrentDirFiles();
                     fileListView.setDirectoryContents(currentDirFiles);
 
                     String newDir = fsReader.getWorkingDirectory();
@@ -185,7 +191,7 @@ final class FSPanel extends JPanel {
                     Logger.getLogger("test").fine("went to: " + newDir);
                 } catch (InterruptedException | CancellationException ignored) {
                 } catch (ExecutionException e) {
-                    e.printStackTrace();
+                    Logger.getLogger("test").warning("Exception: " + e.getCause().getMessage());
                 }
                 finally {
                     stopChDirButton.setEnabled(false);
@@ -207,34 +213,16 @@ final class FSPanel extends JPanel {
 
         previewFileWorker = new SwingWorker<JComponent, Void>() {
             @Override
-            protected JComponent doInBackground() {
+            protected JComponent doInBackground() throws Exception {
                 FileInfo f = fsReader.getFileByPath(fileName);
-                if (f == null)
-                    return null;
+
                 if (!f.getAttributes().contains(FileInfo.FileAttribute.IS_REGULAR_FILE)) {
                     return PreviewComponentFactory.INSTANCE.getComponentForDir(f, PREVIEW_SIZE);
                 }
 
-                InputStream is;
-                try {
-                    is = fsReader.retrieveFileInputStream(fileName);
-                } catch (IOException e) {
-                    Logger.getLogger("test").warning("IOException: " + e.getCause());
-                    return null;
-                }
-                if (is == null)
-                    return null;
+                InputStream is = fsReader.retrieveFileInputStream(fileName);
 
-                JComponent result;
-                try {
-                    result = PreviewComponentFactory.INSTANCE.getComponentForFile(f, is, PREVIEW_SIZE);
-                }
-                catch (IOException e) {
-                    Logger.getLogger("test").warning("IOException: " + e.getCause());
-                    return null;
-                }
-
-                return result;
+                return PreviewComponentFactory.INSTANCE.getComponentForFile(f, is, PREVIEW_SIZE);
             }
 
             @Override
@@ -252,7 +240,7 @@ final class FSPanel extends JPanel {
                     previewFrame.show(self);
                 } catch (InterruptedException | CancellationException ignored) {
                 } catch (ExecutionException e) {
-                    e.printStackTrace();
+                    Logger.getLogger("test").warning("Exception: " + e.getCause().getMessage());
                 }
             }
         };
