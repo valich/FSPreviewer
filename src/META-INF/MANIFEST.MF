@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Class-Path: annotations.jar commons-net-3.3.jar
+Main-Class: org.valich.fsview.Main
+

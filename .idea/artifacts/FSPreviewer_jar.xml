@@ -1,0 +1,12 @@
+<component name="ArtifactManager">
+  <artifact name="FSPreviewer:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/FSPreviewer_jar</output-path>
+    <root id="root">
+      <element id="archive" name="FSPreviewer.jar">
+        <element id="module-output" name="FSPreviewer" />
+      </element>
+      <element id="library" level="project" name="annotations" />
+      <element id="library" level="project" name="commons-net-3.3" />
+    </root>
+  </artifact>
+</component>
