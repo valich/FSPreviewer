@@ -4,10 +4,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.valich.fsview.FileInfo;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.Collection;
 
 /**
@@ -27,7 +25,7 @@ public interface FSReader<T> {
     /**
      * returns metadata for specified file
      * @param pathName path to the file
-     * @return {@link java.io.File} containing metadata
+     * @return {@link org.valich.fsview.FileInfo} containing metadata or null if problem was encountered
      */
     @Nullable
     FileInfo getFileByPath(@NotNull T pathName);
@@ -41,7 +39,7 @@ public interface FSReader<T> {
 
     /**
      * pwd
-     * @return string containing path to the current directory
+     * @return path to the current directory
      */
     @NotNull
     T getWorkingDirectory();
@@ -49,7 +47,8 @@ public interface FSReader<T> {
     /**
      * Retrieves a stream with which one can read file contents
      * @param pathName path to the file which is to be read
-     * @return readable stream with file contents
+     * @return readable stream with file contents or null if problem was encountered
+     * @throws java.io.IOException if file could not be opened for reading
      */
     @Nullable
     InputStream retrieveFileInputStream(@NotNull T pathName) throws IOException;

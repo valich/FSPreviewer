@@ -4,13 +4,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 
-/**
- * Created by valich on 21.03.14.
- */
-public class PathHelper {
+public final class PathHelper {
     private PathHelper() {}
 
     public static String getProtocol(String pathName) {
@@ -21,7 +17,7 @@ public class PathHelper {
         }
         return null;
     }
-
+/*
     public static URI asURI(String pathName) {
         return asURI(pathName, null);
     }
@@ -43,6 +39,7 @@ public class PathHelper {
             return null;
         }
     }
+    */
 
     public static boolean isAbsolute(String pathName) {
         String protocol = getProtocol(pathName);
@@ -134,5 +131,18 @@ public class PathHelper {
             return p.getRoot().resolve(result);
         else
             return result;
+    }
+
+    public static String joinCollection(Collection<String> arr, String delim) {
+        StringBuilder sb = new StringBuilder();
+        boolean isFirst = true;
+        for (String s : arr) {
+            if (!isFirst)
+                sb.append(delim);
+            isFirst = false;
+            sb.append(s);
+        }
+
+        return sb.toString();
     }
 }

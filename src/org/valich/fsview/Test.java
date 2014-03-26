@@ -4,15 +4,9 @@ import org.valich.fsview.fsreader.FSReader;
 import org.valich.fsview.fsreader.IncrementalCompositingFSReader;
 
 import java.io.InputStreamReader;
-import java.net.URI;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Scanner;
 
-/**
- * Created by valich on 20.03.14.
- */
 public class Test {
     public static void main(String[] args) throws Exception {
         Scanner in = new Scanner(new InputStreamReader(System.in));

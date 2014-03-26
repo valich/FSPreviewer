@@ -1,4 +1,4 @@
-package org.valich.fsview.ui;
+package org.valich.fsview.ui.preview;
 
 import javax.imageio.ImageIO;
 import javax.imageio.stream.MemoryCacheImageInputStream;
@@ -7,12 +7,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Logger;
 
-/**
- * Created by valich on 25.03.14.
- */
-public final class SimpleImagePreviewer extends JPanel {
+final class SimpleImagePreviewer extends JPanel {
 
     public SimpleImagePreviewer(InputStream is, Dimension preferredSize) throws IOException {
         MemoryCacheImageInputStream imageInputStream = new MemoryCacheImageInputStream(is);

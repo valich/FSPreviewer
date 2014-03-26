@@ -4,15 +4,15 @@ import org.apache.commons.net.ftp.FTPFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
+
 import static org.valich.fsview.FileInfo.FileAttribute.*;
 
 /**
- * Created by valich on 21.03.14.
+ * Immutable class, containing file info, such as name, type and size.
  */
 public final class FileInfo {
     public enum FileAttribute {
@@ -21,8 +21,8 @@ public final class FileInfo {
         IS_SYMLINK
     }
 
-    private String name;
-    private EnumSet<FileAttribute> attributes;
+    private final String name;
+    private final EnumSet<FileAttribute> attributes;
     private long size;
 
     @NotNull
@@ -66,19 +66,6 @@ public final class FileInfo {
     }
 
     @Nullable
-    public static FileInfo valueOf(File file) {
-        if (file == null)
-            return null;
-
-        FileInfo result = new FileInfo(file.getName());
-        result.setAttribute(IS_DIRECTORY, file.isDirectory());
-        result.setAttribute(IS_REGULAR_FILE, file.isFile());
-        result.size = file.length();
-
-        return result;
-    }
-
-    @Nullable
     public static FileInfo valueOf(Path file) {
         if (file == null)
             return null;
@@ -118,7 +105,11 @@ public final class FileInfo {
             return false;
         if (!(o instanceof FileInfo))
             return false;
-        return this.getName().equals(((FileInfo) o).getName());
+
+        FileInfo other = (FileInfo) o;
+        return this.getName().equals(other.getName()) &&
+                this.getAttributes().equals(other.getAttributes()) &&
+                this.getSize() == other.getSize();
     }
 
     @Override public int hashCode() {

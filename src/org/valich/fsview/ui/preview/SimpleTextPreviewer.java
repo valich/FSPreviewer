@@ -1,16 +1,16 @@
-package org.valich.fsview.ui;
+package org.valich.fsview.ui.preview;
 
 import javax.swing.*;
-import javax.swing.text.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultEditorKit;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.StyledDocument;
 import javax.swing.text.rtf.RTFEditorKit;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
 
-/**
- * Created by valich on 25.03.14.
- */
-public final class SimpleTextPreviewer extends JPanel {
+final class SimpleTextPreviewer extends JPanel {
     public SimpleTextPreviewer(String fileName, InputStream is, Dimension preferredSize) throws IOException {
         String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
         StyledDocument doc;

@@ -1,7 +1,6 @@
 package org.valich.fsview.ui;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -12,14 +11,12 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-/**
- * Created by valich on 23.03.14.
- */
 public final class MainFrame extends JFrame {
+    // To prevent from being garbage collected
+    @SuppressWarnings("unused")
     private final Logger logger = Logger.getLogger("test");
     private final JComponent panelHolder;
-
-    private List<FSPanel> panelList = new ArrayList<>();
+    private final List<FSPanel> panelList = new ArrayList<>();
 
     public MainFrame() {
         super("fsview");
@@ -42,16 +39,26 @@ public final class MainFrame extends JFrame {
 
 
     private JMenuBar getMenu() {
+        final MainFrame self = this;
+
         JMenuBar menuBar = new JMenuBar();
 
         JMenu mainMenu = new JMenu("Main");
 
         createRadioButtons(mainMenu);
 
+        mainMenu.addSeparator();
 
-        mainMenu.add(new JMenuItem("Exit"));
+        JMenuItem exit = new JMenuItem("Exit");
+        exit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                self.dispose();
+            }
+        });
+        mainMenu.add(exit);
+
         menuBar.add(mainMenu);
-
         return menuBar;
     }
 
@@ -78,6 +85,7 @@ public final class MainFrame extends JFrame {
         radioItem = new JRadioButtonMenuItem("Icon view", false);
         radioItem.setActionCommand("icon");
         radioItem.addActionListener(selectListener);
+        radioItem.setEnabled(false);
         buttonGroup.add(radioItem);
         mainMenu.add(radioItem);
     }
@@ -106,6 +114,7 @@ public final class MainFrame extends JFrame {
         });
 
         JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Test log"));
         return scrollPane;
     }
 
@@ -120,7 +129,7 @@ public final class MainFrame extends JFrame {
         JComponent last = panelList.get(0);
         for (int i = 1; i < panelList.size(); ++i) {
             JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, last, panelList.get(i));
-            splitPane.setResizeWeight(0);
+            splitPane.setResizeWeight(0.5);
             last = splitPane;
         }
         panelHolder.add(last, BorderLayout.CENTER);

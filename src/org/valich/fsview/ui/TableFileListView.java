@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Created by valich on 25.03.14.
+ * Lists files in a table, containing their name, extension and size
  */
 public class TableFileListView implements FileListView {
     private final FSTableModel tableModel;

@@ -2,13 +2,10 @@ package org.valich.fsview.fsreader;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.file.*;
+import java.nio.file.FileSystem;
+import java.nio.file.Path;
 
-/**
- * Created by valich on 20.03.14.
- */
 abstract class AbstractSimpleFSReader implements SimpleFSReader {
-    private final Path root;
     private Path path;
 
     @NotNull
@@ -30,7 +27,6 @@ abstract class AbstractSimpleFSReader implements SimpleFSReader {
 
     protected AbstractSimpleFSReader(FileSystem fs) {
         path = fs.getRootDirectories().iterator().next();
-        root = path.getRoot();
     }
 
     protected Path getPath() {

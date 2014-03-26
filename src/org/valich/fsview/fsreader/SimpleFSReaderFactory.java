@@ -8,10 +8,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Created by valich on 21.03.14.
- */
-public enum SimpleFSReaderFactory {
+enum SimpleFSReaderFactory {
     INSTANCE;
 
     public SimpleFSReader getReaderForBasePath(String path) throws IllegalArgumentException, IOException {

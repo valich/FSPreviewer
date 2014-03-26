@@ -3,7 +3,8 @@ package org.valich.fsview.fsreader;
 import java.nio.file.Path;
 
 /**
- * Created by valich on 20.03.14.
+ * Convenience hierarchy subinterface representing FSReader that is able
+ * to work with one particular Path type.
  */
-public interface SimpleFSReader extends FSReader<Path> {
+interface SimpleFSReader extends FSReader<Path> {
 }

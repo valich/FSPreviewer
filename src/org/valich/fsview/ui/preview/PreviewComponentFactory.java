@@ -1,4 +1,4 @@
-package org.valich.fsview.ui;
+package org.valich.fsview.ui.preview;
 
 import org.jetbrains.annotations.NotNull;
 import org.valich.fsview.FileInfo;
@@ -9,14 +9,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.regex.Pattern;
 
-/**
- * Created by valich on 25.03.14.
- */
 public enum PreviewComponentFactory {
     INSTANCE;
 
     public JComponent getComponentForFile(@NotNull FileInfo f, @NotNull InputStream is, @NotNull Dimension preferredSize)
-                                                                            throws IllegalArgumentException, IOException {
+                                                                            throws IOException {
         String fileName = f.getName();
 
         for (SupportedFiles fType : SupportedFiles.values()) {
@@ -25,16 +22,30 @@ public enum PreviewComponentFactory {
             }
         }
 
-        throw new IllegalArgumentException(fileName + " is not supported for preview!");
+        return new StubFilePreviewer(f, preferredSize);
+//        throw new IllegalArgumentException(fileName + " is not supported for preview!");
     }
+
+    public JComponent getComponentForDir(@NotNull FileInfo f, @NotNull Dimension preferredSize) {
+        return new StubFilePreviewer(f, preferredSize);
+    }
+
+    public JComponent getComponentForFailure(@NotNull Dimension previewSize) {
+        return new FailurePreviewer(previewSize);
+    }
+
+    public JComponent getComponentForLoading(Dimension previewSize) {
+        return new LoadingPreviewer(previewSize);
+    }
+
 
     public enum SupportedFiles {
         IMAGE {
-            private Pattern pattern = Pattern.compile(".*\\.(jpg|jpeg|gif|png|bmp)", Pattern.CASE_INSENSITIVE);
+            private final Pattern PATTERN = Pattern.compile(".*\\.(jpg|jpeg|gif|png|bmp)", Pattern.CASE_INSENSITIVE);
 
             @Override
             public boolean isSupportedFileName(String fileName) {
-                return pattern.matcher(fileName).matches();
+                return PATTERN.matcher(fileName).matches();
             }
 
             @Override
@@ -43,11 +54,11 @@ public enum PreviewComponentFactory {
             }
         },
         TEXT {
-            private Pattern pattern = Pattern.compile(".*\\.(txt|rtf)", Pattern.CASE_INSENSITIVE);
+            private final Pattern PATTERN = Pattern.compile(".*\\.(txt|rtf)", Pattern.CASE_INSENSITIVE);
 
             @Override
             public boolean isSupportedFileName(String fileName) {
-                return pattern.matcher(fileName).matches();
+                return PATTERN.matcher(fileName).matches();
             }
 
             @Override

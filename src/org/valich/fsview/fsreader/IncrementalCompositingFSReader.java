@@ -14,7 +14,9 @@ import java.util.Stack;
 import java.util.logging.Logger;
 
 /**
- * Created by valich on 21.03.14.
+ * Main implementation of FSReader suitable for use from common clients
+ * All paths in queries are strings; A path with intervals of different
+ * FS is possible (e.g. ftp://####/dir/file.zip/other_dir/)
  */
 public final class IncrementalCompositingFSReader implements FSReader<String> {
     private Stack<SimpleFSReader> readerStack = new Stack<>();
@@ -99,6 +101,17 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return tmpReader.retrieveFileInputStream(pathName);
     }
 
+    private synchronized boolean updateStackForPath(String pathName) {
+
+        if (PathHelper.isAbsolute(pathName)) {
+            pathName = clearStackToBranchingPointAbsolute(pathName);
+        } else {
+            pathName = clearStackToBranchingPointRelative(pathName);
+        }
+
+        return buildStack(pathName);
+    }
+
     private Path getReadOnlyRelativePath(String pathName) {
         final Path relative;
         if (PathHelper.isAbsolute(pathName)) {
@@ -131,16 +144,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return relative;
     }
 
-    private synchronized boolean updateStackForPath(String pathName) {
 
-        if (PathHelper.isAbsolute(pathName)) {
-            pathName = clearStackToBranchingPointAbsolute(pathName);
-        } else {
-            pathName = clearStackToBranchingPointRelative(pathName);
-        }
-
-        return buildStack(pathName);
-    }
 
     private void popTopReader() {
         if (readerStack.isEmpty())
@@ -151,6 +155,12 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         if (!readerStack.isEmpty()) {
             pathPartsStack.pop();
             pathPartsStack.push(readerStack.peek().getWorkingDirectory());
+        }
+    }
+
+    private void trimStacksToSize(int size) {
+        while (pathPartsStack.size() > size) {
+            popTopReader();
         }
     }
 
@@ -184,12 +194,6 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         return remaining;
     }
 
-    private void trimStacksToSize(int size) {
-        while (pathPartsStack.size() > size) {
-            popTopReader();
-        }
-    }
-
     private String clearStackToBranchingPointRelative(String pathName) {
         while (readerStack.size() > 0) {
             final Path root = pathPartsStack.peek().getRoot();
@@ -219,23 +223,10 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
             else
                 parts[passed] = parts[passed].substring(2 + 1);
 
-            pathName = joinCollection(Arrays.asList(parts).subList(passed, parts.length), delim);
+            pathName = PathHelper.joinCollection(Arrays.asList(parts).subList(passed, parts.length), delim);
         }
 
         return pathName;
-    }
-
-    private static String joinCollection(Collection<String> arr, String delim) {
-        StringBuilder sb = new StringBuilder();
-        boolean isFirst = true;
-        for (String s : arr) {
-            if (!isFirst)
-                sb.append(delim);
-            isFirst = false;
-            sb.append(s);
-        }
-
-        return sb.toString();
     }
 
     private boolean buildStack(String pathName) {
