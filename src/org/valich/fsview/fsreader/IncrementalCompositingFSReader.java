@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Stack;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * Main implementation of FSReader suitable for use from common clients
@@ -211,7 +212,7 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         while (readerStack.size() > 0) {
             final Path root = pathPartsStack.peek().getRoot();
             final String delim = root.getFileSystem().getSeparator();
-            final String[] parts = pathName.split(delim);
+            final String[] parts = pathName.split(Pattern.quote(delim));
 
             Path curDir = readerStack.peek().getWorkingDirectory().normalize();
             int partsCount = countPartsToExitTopReader(root, parts, curDir);

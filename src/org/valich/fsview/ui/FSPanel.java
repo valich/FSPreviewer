@@ -199,6 +199,7 @@ final class FSPanel extends JPanel {
                 } catch (InterruptedException | CancellationException ignored) {
                 } catch (ExecutionException e) {
                     Logger.getLogger("test").warning("Exception: " + e.getCause().getMessage());
+                    e.printStackTrace();
                 }
                 finally {
                     stopChDirButton.setEnabled(false);

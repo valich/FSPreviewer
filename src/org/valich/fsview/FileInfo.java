@@ -5,7 +5,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.EnumSet;
 
@@ -67,8 +66,8 @@ public final class FileInfo {
 
     @NotNull
     public static FileInfo valueOf(@NotNull Path file) throws IOException {
-        if (!Files.exists(file))
-            throw new NoSuchFileException("No such file");
+//        if (!Files.exists(file))
+//            throw new NoSuchFileException("No such file");
 
         FileInfo result = new FileInfo(file.getFileName().toString());
         result.setAttribute(IS_DIRECTORY, Files.isDirectory(file));
