@@ -12,14 +12,15 @@ public class OuterPreviewFrame implements PreviewFrame {
     @Nullable
     private JComponent previewer;
 
-    public OuterPreviewFrame() {
+    public OuterPreviewFrame(@NotNull Dimension maxSize) {
         previewFrame = new JFrame("preview");
         previewFrame.setLayout(new BorderLayout());
         previewFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         previewFrame.setAlwaysOnTop(true);
         previewFrame.setResizable(true);
         previewFrame.setMinimumSize(new Dimension(200, 200)); // Magic constants, hell yeah
-        previewFrame.setMaximumSize(new Dimension(800, 800));
+//        previewFrame.setPreferredSize(maxSize);
+        previewFrame.setMaximumSize(maxSize);
         previewFrame.setUndecorated(true);
     }
 
@@ -54,6 +55,8 @@ public class OuterPreviewFrame implements PreviewFrame {
         if (anchor != null) {
             previewFrame.setLocationRelativeTo(anchor);
         }
+        if (previewFrame.getY() < 50)
+            previewFrame.setLocation(previewFrame.getX(), 50);
 
         previewFrame.setVisible(true);
     }

@@ -25,7 +25,7 @@ import java.util.logging.Logger;
  * Panel purposed for traversing file systems and previewing files and dirs inside
  */
 final class FSPanel extends JPanel {
-    private final Dimension PREVIEW_SIZE = new Dimension(800, 800);
+    private final Dimension PREVIEW_SIZE = new Dimension(600, 600);
 
     private final FSPanel self = this;
     private final FSReader<String> fsReader;
@@ -49,7 +49,7 @@ final class FSPanel extends JPanel {
 
         fsReader = new IncrementalCompositingFSReader();
         updateCurrentDirFiles();
-        previewFrame = new OuterPreviewFrame();
+        previewFrame = new OuterPreviewFrame(PREVIEW_SIZE);
         curDirTextField = new JTextField();
         stopChDirButton = new JButton();
 
