@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,7 +17,7 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
     private FTPClient client;
 
     FTPSimpleReader(@NotNull URI uri) throws IOException, URISyntaxException {
-        super(FileSystems.getFileSystem(new URI("file:///")));
+        super(new UnixPseudoPath().getFileSystem());
 
         String baseUri = uri.getAuthority();
 
@@ -52,7 +51,7 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
         client.enterLocalPassiveMode();
         FTPFile[] result = client.listFiles(path.toString());
         if (result.length == 0)
-            throw new IOException("There is no file linked to that path");
+            throw new IOException("There is no file linked to that path " + path);
         return FileInfo.valueOf(result[0]);
     }
 
