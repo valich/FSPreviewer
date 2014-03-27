@@ -1,12 +1,13 @@
 package org.valich.fsview.ui.preview;
 
+import org.jetbrains.annotations.NotNull;
 import org.valich.fsview.FileInfo;
 
 import javax.swing.*;
 import java.awt.*;
 
 class StubFilePreviewer extends JPanel {
-    public StubFilePreviewer(FileInfo f, Dimension preferredSize) {
+    public StubFilePreviewer(@NotNull FileInfo f, @NotNull Dimension preferredSize) {
         setLayout(new BorderLayout());
 
         String northStr = "";

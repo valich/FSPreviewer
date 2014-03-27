@@ -1,5 +1,7 @@
 package org.valich.fsview.ui.preview;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.imageio.ImageIO;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import javax.swing.*;
@@ -10,7 +12,7 @@ import java.io.InputStream;
 
 final class SimpleImagePreviewer extends JPanel {
 
-    public SimpleImagePreviewer(InputStream is, Dimension preferredSize) throws IOException {
+    public SimpleImagePreviewer(@NotNull InputStream is, @NotNull Dimension preferredSize) throws IOException {
         MemoryCacheImageInputStream imageInputStream = new MemoryCacheImageInputStream(is);
         BufferedImage img = ImageIO.read(imageInputStream);
 

@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 public enum PreviewComponentFactory {
     INSTANCE;
 
+    @NotNull
     public JComponent getComponentForFile(@NotNull FileInfo f, @NotNull InputStream is, @NotNull Dimension preferredSize)
                                                                             throws IOException {
         String fileName = f.getName();
@@ -26,15 +27,18 @@ public enum PreviewComponentFactory {
 //        throw new IllegalArgumentException(fileName + " is not supported for preview!");
     }
 
+    @NotNull
     public JComponent getComponentForDir(@NotNull FileInfo f, @NotNull Dimension preferredSize) {
         return new StubFilePreviewer(f, preferredSize);
     }
 
+    @NotNull
     public JComponent getComponentForFailure(@NotNull Dimension previewSize) {
         return new FailurePreviewer(previewSize);
     }
 
-    public JComponent getComponentForLoading(Dimension previewSize) {
+    @NotNull
+    public JComponent getComponentForLoading(@NotNull Dimension previewSize) {
         return new LoadingPreviewer(previewSize);
     }
 
@@ -44,12 +48,13 @@ public enum PreviewComponentFactory {
             private final Pattern PATTERN = Pattern.compile(".*\\.(jpg|jpeg|gif|png|bmp)", Pattern.CASE_INSENSITIVE);
 
             @Override
-            public boolean isSupportedFileName(String fileName) {
+            public boolean isSupportedFileName(@NotNull String fileName) {
                 return PATTERN.matcher(fileName).matches();
             }
 
             @Override
-            public JComponent getPreviewer(String fileName, InputStream is, Dimension preferredSize) throws IOException {
+            public JComponent getPreviewer(@NotNull String fileName, @NotNull InputStream is,
+                                           @NotNull Dimension preferredSize) throws IOException {
                 return new SimpleImagePreviewer(is, preferredSize);
             }
         },
@@ -57,18 +62,20 @@ public enum PreviewComponentFactory {
             private final Pattern PATTERN = Pattern.compile(".*\\.(txt|rtf)", Pattern.CASE_INSENSITIVE);
 
             @Override
-            public boolean isSupportedFileName(String fileName) {
+            public boolean isSupportedFileName(@NotNull String fileName) {
                 return PATTERN.matcher(fileName).matches();
             }
 
             @Override
-            public JComponent getPreviewer(String fileName, InputStream is, Dimension preferredSize) throws IOException {
+            public JComponent getPreviewer(@NotNull String fileName, @NotNull InputStream is,
+                                           @NotNull Dimension preferredSize) throws IOException {
                 return new SimpleTextPreviewer(fileName, is, preferredSize);
             }
         };
 
-        public abstract boolean isSupportedFileName(String fileName);
+        public abstract boolean isSupportedFileName(@NotNull String fileName);
 
-        public abstract JComponent getPreviewer(String fileName, InputStream is, Dimension preferredSize) throws IOException;
+        public abstract JComponent getPreviewer(@NotNull String fileName, @NotNull InputStream is,
+                                                @NotNull Dimension preferredSize) throws IOException;
     }
 }

@@ -1,5 +1,7 @@
 package org.valich.fsview.ui;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -13,9 +15,14 @@ import java.util.logging.Logger;
 
 public final class MainFrame extends JFrame {
     // To prevent from being garbage collected
+    @NotNull
     @SuppressWarnings("unused")
     private final Logger logger = Logger.getLogger("test");
+
+    @NotNull
     private final JComponent panelHolder;
+
+    @NotNull
     private final List<FSPanel> panelList = new ArrayList<>();
 
     public MainFrame() {
@@ -38,6 +45,7 @@ public final class MainFrame extends JFrame {
     }
 
 
+    @NotNull
     private JMenuBar getMenu() {
         final MainFrame self = this;
 
@@ -62,7 +70,7 @@ public final class MainFrame extends JFrame {
         return menuBar;
     }
 
-    private void createRadioButtons(JMenu mainMenu) {
+    private void createRadioButtons(@NotNull JMenu mainMenu) {
         final ButtonGroup buttonGroup = new ButtonGroup();
         JRadioButtonMenuItem radioItem;
 
@@ -90,6 +98,7 @@ public final class MainFrame extends JFrame {
         mainMenu.add(radioItem);
     }
 
+    @NotNull
     private JComponent getLogPanel() {
         final JTextArea textArea = new JTextArea(5, 80);
         textArea.setEditable(false);

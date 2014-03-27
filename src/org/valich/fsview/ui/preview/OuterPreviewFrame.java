@@ -9,6 +9,7 @@ import java.awt.event.KeyListener;
 
 public class OuterPreviewFrame implements PreviewFrame {
     private final JFrame previewFrame;
+    @Nullable
     private JComponent previewer;
 
     public OuterPreviewFrame() {

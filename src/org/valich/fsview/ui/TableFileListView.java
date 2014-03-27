@@ -24,6 +24,7 @@ public class TableFileListView implements FileListView {
         tableModel = new FSTableModel(new ArrayList<FileInfo>());
         table = new JTable(tableModel);
 
+        setUpTable();
     }
 
     private void setUpTable() {
@@ -74,13 +75,15 @@ public class TableFileListView implements FileListView {
 
     final static class FSTableModel extends AbstractTableModel {
         private final String[] COLUMN_NAMES = {"Name", "Ext", "Size"};
+        @NotNull
         private List<FileInfo> tableData;
 
 
-        public FSTableModel(List<FileInfo> tableData) {
+        public FSTableModel(@NotNull List<FileInfo> tableData) {
             this.tableData = tableData;
         }
 
+        @NotNull
         FileInfo getTableDataElement(int i) throws ArrayIndexOutOfBoundsException {
             if (i < 0 || i >= getRowCount())
                 throw new ArrayIndexOutOfBoundsException(i);
@@ -88,7 +91,7 @@ public class TableFileListView implements FileListView {
             return tableData.get(i);
         }
 
-        public synchronized void setTableData(Collection<FileInfo> tableData) {
+        public synchronized void setTableData(@NotNull Collection<FileInfo> tableData) {
             this.tableData = new ArrayList<>(tableData);
             fireTableDataChanged();
         }
@@ -131,7 +134,8 @@ public class TableFileListView implements FileListView {
             return COLUMN_NAMES[coln];
         }
 
-        private static String getName(FileInfo f) {
+        @NotNull
+        private static String getName(@NotNull FileInfo f) {
             String name = f.getName();
             if (name.charAt(0) == '.')
                 return name;
@@ -146,7 +150,8 @@ public class TableFileListView implements FileListView {
                 return name;
         }
 
-        private static String getExtension(FileInfo f) {
+        @NotNull
+        private static String getExtension(@NotNull FileInfo f) {
             if (f.getAttributes().contains(FileInfo.FileAttribute.IS_REGULAR_FILE)) {
                 String name = f.getName();
                 if (name.charAt(0) == '.')
@@ -164,7 +169,8 @@ public class TableFileListView implements FileListView {
                 return "";
         }
 
-        private static Long getSize(FileInfo f) {
+        @NotNull
+        private static Long getSize(@NotNull FileInfo f) {
             return f.getSize();
         }
     }

@@ -1,5 +1,7 @@
 package org.valich.fsview.ui.preview;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
@@ -11,7 +13,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 final class SimpleTextPreviewer extends JPanel {
-    public SimpleTextPreviewer(String fileName, InputStream is, Dimension preferredSize) throws IOException {
+    public SimpleTextPreviewer(@NotNull String fileName, @NotNull InputStream is,
+                               @NotNull Dimension preferredSize) throws IOException {
         String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
         StyledDocument doc;
 
@@ -42,7 +45,8 @@ final class SimpleTextPreviewer extends JPanel {
         setMaximumSize(preferredSize);
     }
 
-    private StyledDocument createRTFDoc(InputStream is) throws IOException {
+    @NotNull
+    private StyledDocument createRTFDoc(@NotNull InputStream is) throws IOException {
         RTFEditorKit rtfKit = new RTFEditorKit();
         StyledDocument doc = (StyledDocument) rtfKit.createDefaultDocument();
         try {
@@ -54,7 +58,8 @@ final class SimpleTextPreviewer extends JPanel {
         return doc;
     }
 
-    private StyledDocument createTXTDoc(InputStream is) throws IOException {
+    @NotNull
+    private StyledDocument createTXTDoc(@NotNull InputStream is) throws IOException {
         DefaultEditorKit txtKit = new DefaultEditorKit();
         StyledDocument doc = new DefaultStyledDocument();
         try {

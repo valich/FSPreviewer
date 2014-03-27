@@ -1,5 +1,7 @@
 package org.valich.fsview.ui;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.valich.fsview.FileInfo;
 import org.valich.fsview.fsreader.FSReader;
 import org.valich.fsview.fsreader.IncrementalCompositingFSReader;
@@ -30,11 +32,16 @@ final class FSPanel extends JPanel {
     private final JTextField curDirTextField;
     private final JButton stopChDirButton;
     private final PreviewFrame previewFrame;
+
+    @NotNull
     private FileListView fileListView;
 
+    @NotNull
     private List<FileInfo> currentDirFiles;
 
+    @Nullable
     private SwingWorker<Collection<FileInfo>, Void> changeDirWorker;
+    @Nullable
     private SwingWorker<JComponent, Void> previewFileWorker;
 
     public FSPanel() {
@@ -45,7 +52,6 @@ final class FSPanel extends JPanel {
         previewFrame = new OuterPreviewFrame();
         curDirTextField = new JTextField();
         stopChDirButton = new JButton();
-        fileListView = null;
 
         setFileListViewStyle(); // table only
         setUpFileListListeners();
@@ -80,6 +86,7 @@ final class FSPanel extends JPanel {
         });
     }
 
+    @NotNull
     private JComponent getAddressBar() {
         curDirTextField.setText(fsReader.getWorkingDirectory());
         curDirTextField.addActionListener(new ActionListener() {
@@ -159,7 +166,7 @@ final class FSPanel extends JPanel {
         });
     }
 
-    private void processChangeDir(final String fileName) {
+    private void processChangeDir(@NotNull final String fileName) {
         Logger.getLogger("test").fine("cd " + fileName);
 
         if (changeDirWorker != null)
@@ -205,7 +212,7 @@ final class FSPanel extends JPanel {
         changeDirWorker.execute();
     }
 
-    private void processPreviewFile(final String fileName) {
+    private void processPreviewFile(@NotNull final String fileName) {
         Logger.getLogger("test").fine("preview " + fileName);
 
         if (previewFileWorker != null)
