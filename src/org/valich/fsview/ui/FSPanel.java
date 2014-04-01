@@ -123,8 +123,7 @@ final class FSPanel extends JPanel {
     }
 
     private synchronized void updateCurrentDirFiles() {
-        currentDirFiles = new ArrayList<>();
-        currentDirFiles.add(FileInfo.UP_DIR);
+        clearCurrentDirFiles();
 
         try {
             currentDirFiles.addAll(fsReader.getDirectoryContents());
@@ -132,6 +131,17 @@ final class FSPanel extends JPanel {
             Logger.getLogger("test").warning("Exception while getting dir contents: " + e.getMessage());
 //            Logger.getLogger("test").warning(Arrays.toString(e.getStackTrace()));
         }
+    }
+
+    private synchronized void updateCurrentDirFiles(Collection<FileInfo> dirContents) {
+        clearCurrentDirFiles();
+
+        currentDirFiles.addAll(dirContents);
+    }
+
+    private synchronized void clearCurrentDirFiles() {
+        currentDirFiles = new ArrayList<>();
+        currentDirFiles.add(FileInfo.UP_DIR);
     }
 
     private void setUpFileListListeners() {
@@ -173,9 +183,12 @@ final class FSPanel extends JPanel {
             changeDirWorker.cancel(true);
 
         changeDirWorker = new SwingWorker<Collection<FileInfo>, Void>() {
+            private volatile boolean hasChangedDir = false;
+
             @Override
             protected Collection<FileInfo> doInBackground() throws Exception {
                 if (fsReader.changeDirectory(fileName)) {
+                    hasChangedDir = true;
                     return fsReader.getDirectoryContents();
                 }
                 return null;
@@ -183,6 +196,9 @@ final class FSPanel extends JPanel {
 
             @Override
             public void done() {
+                if (hasChangedDir)
+                    clearCurrentDirFiles();
+
                 try {
                     Collection<FileInfo> result = get();
                     if (result == null) {
@@ -190,18 +206,21 @@ final class FSPanel extends JPanel {
                         return; // do nothing
                     }
 
-                    updateCurrentDirFiles();
-                    fileListView.setDirectoryContents(currentDirFiles);
-
-                    String newDir = fsReader.getWorkingDirectory();
-                    curDirTextField.setText(newDir);
-                    Logger.getLogger("test").fine("went to: " + newDir);
+                    updateCurrentDirFiles(result);
                 } catch (InterruptedException | CancellationException ignored) {
                 } catch (ExecutionException e) {
                     Logger.getLogger("test").warning("Exception: " + e.getCause().getMessage());
                     e.printStackTrace();
                 }
                 finally {
+                    if (hasChangedDir) {
+                        fileListView.setDirectoryContents(currentDirFiles);
+
+                        String newDir = fsReader.getWorkingDirectory();
+                        curDirTextField.setText(newDir);
+                        Logger.getLogger("test").fine("went to: " + newDir);
+                    }
+
                     stopChDirButton.setEnabled(false);
                     stopChDirButton.setBackground(Color.WHITE);
                 }
