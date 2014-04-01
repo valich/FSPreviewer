@@ -9,19 +9,19 @@ import java.nio.file.spi.FileSystemProvider;
 import java.util.*;
 
 class UnixPseudoPath implements Path {
-    final boolean isAbsolute;
-    final List<String> parts = new ArrayList<>();
+    private final boolean isAbsolute;
+    private final List<String> parts = new ArrayList<>();
 
     UnixPseudoPath() {
         isAbsolute = true;
         parts.add("/");
     }
 
-    UnixPseudoPath(String... path) {
+    private UnixPseudoPath(String... path) {
         this(path[0].charAt(0) == '/', Arrays.asList(path));
     }
 
-    UnixPseudoPath(boolean isAbsolute, List<String> path) {
+    private UnixPseudoPath(boolean isAbsolute, List<String> path) {
         String bigStr = PathHelper.joinCollection(path, "/");
         this.isAbsolute = isAbsolute;
 
@@ -213,7 +213,7 @@ class UnixPseudoPath implements Path {
     @Override
     public Iterator<Path> iterator() {
         return new Iterator<Path>() {
-            Iterator<String> inner = parts.iterator();
+            private final Iterator<String> inner = parts.iterator();
 
             @Override
             public boolean hasNext() {

@@ -8,15 +8,14 @@ import org.valich.fsview.FileInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 
 final class FTPSimpleReader extends AbstractSimpleFSReader {
-    private FTPClient client;
+    private final FTPClient client;
 
-    FTPSimpleReader(@NotNull URI uri) throws IOException, URISyntaxException {
+    FTPSimpleReader(@NotNull URI uri) throws IOException {
         super(new UnixPseudoPath().getFileSystem());
 
         String baseUri = uri.getAuthority();

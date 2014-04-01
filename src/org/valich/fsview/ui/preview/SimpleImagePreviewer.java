@@ -18,13 +18,19 @@ final class SimpleImagePreviewer extends JPanel {
 
         int w = img.getWidth();
         int h = img.getHeight();
-        double maxw = preferredSize.getWidth();
-        double maxh = preferredSize.getHeight();
-        double ratio = Math.max(h / maxh, w / maxw);
-        int neww = (int)(w / ratio);
-        int newh = (int)(h / ratio);
 
-        Image result = img.getScaledInstance(neww, newh, Image.SCALE_SMOOTH);
+        Image result;
+        if (w > preferredSize.getWidth() || h > preferredSize.getHeight()) {
+            double maxw = preferredSize.getWidth();
+            double maxh = preferredSize.getHeight();
+            double ratio = Math.max(h / maxh, w / maxw);
+            int neww = (int) (w / ratio);
+            int newh = (int) (h / ratio);
+
+            result = img.getScaledInstance(neww, newh, Image.SCALE_SMOOTH);
+        } else {
+            result = img;
+        }
 
         setLayout(new BorderLayout());
         add(new JLabel(new ImageIcon(result)), BorderLayout.CENTER);

@@ -8,18 +8,18 @@ import java.awt.*;
 import java.awt.event.KeyListener;
 
 public class OuterPreviewFrame implements PreviewFrame {
+    @NotNull
     private final JFrame previewFrame;
     @Nullable
     private JComponent previewer;
 
-    public OuterPreviewFrame(@NotNull Dimension maxSize) {
+    public OuterPreviewFrame(@NotNull Dimension minSize, @NotNull Dimension maxSize) {
         previewFrame = new JFrame("preview");
         previewFrame.setLayout(new BorderLayout());
         previewFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         previewFrame.setAlwaysOnTop(true);
         previewFrame.setResizable(true);
-        previewFrame.setMinimumSize(new Dimension(200, 200)); // Magic constants, hell yeah
-//        previewFrame.setPreferredSize(maxSize);
+        previewFrame.setMinimumSize(minSize);
         previewFrame.setMaximumSize(maxSize);
         previewFrame.setUndecorated(true);
     }

@@ -30,11 +30,7 @@ enum SimpleFSReaderFactory {
         }
 
         if (uri.getScheme().equals("ftp")) {
-            try {
-                return new FTPSimpleReader(uri);
-            } catch (URISyntaxException e) {
-                throw new MalformedURLException("Bad URI syntax!");
-            }
+            return new FTPSimpleReader(uri);
         }
 
         throw new IOException(path + "is not supported");

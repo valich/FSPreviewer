@@ -25,7 +25,8 @@ import java.util.logging.Logger;
  * Panel purposed for traversing file systems and previewing files and dirs inside
  */
 final class FSPanel extends JPanel {
-    private final Dimension PREVIEW_SIZE = new Dimension(600, 600);
+    private final Dimension PREVIEW_MAX_SIZE = new Dimension(600, 600);
+    private final Dimension PREVIEW_MIN_SIZE = new Dimension(200, 200);
 
     private final FSPanel self = this;
     private final FSReader<String> fsReader;
@@ -49,7 +50,7 @@ final class FSPanel extends JPanel {
 
         fsReader = new IncrementalCompositingFSReader();
         updateCurrentDirFiles();
-        previewFrame = new OuterPreviewFrame(PREVIEW_SIZE);
+        previewFrame = new OuterPreviewFrame(PREVIEW_MIN_SIZE, PREVIEW_MAX_SIZE);
         curDirTextField = new JTextField();
         stopChDirButton = new JButton();
 
@@ -244,36 +245,43 @@ final class FSPanel extends JPanel {
                 FileInfo f = fsReader.getFileByPath(fileName);
 
                 if (!f.getAttributes().contains(FileInfo.FileAttribute.IS_REGULAR_FILE)) {
-                    return PreviewComponentFactory.INSTANCE.getComponentForDir(f, PREVIEW_SIZE);
+                    return PreviewComponentFactory.INSTANCE.getComponentForDir(f);
                 }
 
                 InputStream is = fsReader.retrieveFileInputStream(fileName);
 
-                return PreviewComponentFactory.INSTANCE.getComponentForFile(f, is, PREVIEW_SIZE);
+                return PreviewComponentFactory.INSTANCE.getComponentForFile(f, is, PREVIEW_MAX_SIZE);
             }
 
             @Override
             public void done() {
+                boolean cancelled = false;
+
+                JComponent internal = null;
                 try {
                     JComponent result = get();
-                    JComponent newComp;
                     if (result == null) {
-                        newComp = PreviewComponentFactory.INSTANCE.getComponentForFailure(PREVIEW_SIZE);
+                        internal = PreviewComponentFactory.INSTANCE.getComponentForFailure();
                     } else {
-                        newComp = result;
+                        internal = result;
                     }
 
-                    previewFrame.setPreviewer(newComp);
-                    previewFrame.show(self);
-                } catch (InterruptedException | CancellationException ignored) {
+
+                } catch (InterruptedException | CancellationException e) {
+                    cancelled = true;
                 } catch (ExecutionException e) {
                     Logger.getLogger("test").warning("Exception: " + e.getCause().getMessage());
-                    previewFrame.dispose();
+                    internal = PreviewComponentFactory.INSTANCE.getComponentForFailure();
+                } finally {
+                    if (!cancelled && internal != null) {
+                        previewFrame.setPreviewer(internal);
+                        previewFrame.show(self);
+                    }
                 }
             }
         };
 
-        previewFrame.setPreviewer(PreviewComponentFactory.INSTANCE.getComponentForLoading(PREVIEW_SIZE));
+        previewFrame.setPreviewer(PreviewComponentFactory.INSTANCE.getComponentForLoading());
         previewFrame.show(self);
 
         previewFileWorker.execute();

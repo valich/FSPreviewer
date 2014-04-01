@@ -23,23 +23,23 @@ public enum PreviewComponentFactory {
             }
         }
 
-        return new StubFilePreviewer(f, preferredSize);
+        return new StubFilePreviewer(f);
 //        throw new IllegalArgumentException(fileName + " is not supported for preview!");
     }
 
     @NotNull
-    public JComponent getComponentForDir(@NotNull FileInfo f, @NotNull Dimension preferredSize) {
-        return new StubFilePreviewer(f, preferredSize);
+    public JComponent getComponentForDir(@NotNull FileInfo f) {
+        return new StubFilePreviewer(f);
     }
 
     @NotNull
-    public JComponent getComponentForFailure(@NotNull Dimension previewSize) {
-        return new FailurePreviewer(previewSize);
+    public JComponent getComponentForFailure() {
+        return new FailurePreviewer();
     }
 
     @NotNull
-    public JComponent getComponentForLoading(@NotNull Dimension previewSize) {
-        return new LoadingPreviewer(previewSize);
+    public JComponent getComponentForLoading() {
+        return new LoadingPreviewer();
     }
 
 

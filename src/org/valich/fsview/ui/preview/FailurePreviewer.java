@@ -1,14 +1,17 @@
 package org.valich.fsview.ui.preview;
 
-import org.jetbrains.annotations.NotNull;
+import org.valich.fsview.ui.IconHolder;
 
 import javax.swing.*;
 import java.awt.*;
 
 class FailurePreviewer extends JPanel {
-    public FailurePreviewer(@NotNull Dimension previewSize) {
+    public FailurePreviewer() {
         setLayout(new BorderLayout());
-        add(new JLabel("FAIL", JLabel.CENTER), BorderLayout.CENTER);
+
+        Icon icon = IconHolder.INSTANCE.getIcon(IconHolder.Icons.ERROR_ICON);
+
+        add(new JLabel(icon, JLabel.CENTER), BorderLayout.CENTER);
         setAlignmentX((float) 0.5);
     }
 }

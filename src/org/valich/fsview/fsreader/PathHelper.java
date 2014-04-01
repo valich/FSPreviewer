@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 
-public final class PathHelper {
+final class PathHelper {
     private PathHelper() {}
 
     @Nullable
