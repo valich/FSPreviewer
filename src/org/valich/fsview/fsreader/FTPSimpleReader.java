@@ -2,6 +2,7 @@ package org.valich.fsview.fsreader;
 
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPReply;
 import org.jetbrains.annotations.NotNull;
 import org.valich.fsview.FileInfo;
 
@@ -14,28 +15,52 @@ import java.util.Collection;
 
 final class FTPSimpleReader extends AbstractSimpleFSReader {
     private final FTPClient client;
+    private InputStream lastRetrievedStream;
+    private boolean hasPendingCommand;
 
     FTPSimpleReader(@NotNull URI uri) throws IOException {
         super(new UnixPseudoPath().getFileSystem());
 
         String baseUri = uri.getAuthority();
 
+        lastRetrievedStream = null;
+        hasPendingCommand = false;
+
         client = new FTPClient();
         client.connect(baseUri);
-        client.login("anonymous", "12345");
+        if (!FTPReply.isPositiveCompletion(client.getReplyCode())) {
+            throw new IOException("FTP connection error: " + client.getReplyString());
+        }
+
+        if (!client.login("anonymous", "12345")) {
+            throw new IOException("Authentication failed: " + client.getReplyString());
+        }
+    }
+
+    private void completePendingCommandIfAny() throws IOException {
+        if (hasPendingCommand) {
+            lastRetrievedStream.close();
+            lastRetrievedStream = null;
+            client.completePendingCommand();
+            hasPendingCommand = false;
+        }
+        assert lastRetrievedStream == null : "hasPendingCommand ^ (lastRetrievedStream == null) must be false";
     }
 
     @Override public synchronized boolean changeDirectory(@NotNull Path path) throws IOException {
+        completePendingCommandIfAny();
+
         if (!client.changeWorkingDirectory(path.toString())) {
             return false;
         }
-
         return super.changeDirectory(path);
     }
 
     @NotNull
     @Override
     public Collection<FileInfo> getDirectoryContents() throws IOException {
+        completePendingCommandIfAny();
+
         Collection<FileInfo> result = new ArrayList<>();
 
         client.enterLocalPassiveMode();
@@ -47,6 +72,8 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
     @NotNull
     @Override
     public FileInfo getFileByPath(@NotNull Path path) throws IOException {
+        completePendingCommandIfAny();
+
         client.enterLocalPassiveMode();
         FTPFile[] result = client.listFiles(path.toString());
         if (result.length == 0)
@@ -57,8 +84,18 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
     @NotNull
     @Override
     public InputStream retrieveFileInputStream(@NotNull Path path) throws IOException {
+        completePendingCommandIfAny();
+
         client.enterLocalPassiveMode();
-        return client.retrieveFileStream(path.toString());
+        InputStream result = client.retrieveFileStream(path.toString());
+        if (result == null) {
+            throw new NullPointerException(client.getReplyString());
+        }
+
+        hasPendingCommand = true;
+        lastRetrievedStream = result;
+
+        return result;
     }
 
     @NotNull

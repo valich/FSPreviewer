@@ -238,6 +238,17 @@ class UnixPseudoPath implements Path {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (o == null)
+            return false;
+        if (!(o instanceof UnixPseudoPath))
+            return false;
+
+        UnixPseudoPath p = ((UnixPseudoPath) o);
+        return isAbsolute == p.isAbsolute && parts.equals(p.parts);
+    }
+
+    @Override
     public String toString() {
         String res = PathHelper.joinCollection(parts, "/");
         if (isAbsolute())
