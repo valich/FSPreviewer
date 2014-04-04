@@ -6,9 +6,10 @@ import org.valich.fsview.FileInfo;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseListener;
+import java.awt.*;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -33,10 +34,17 @@ public class TableFileListView implements FileListView {
         table.setRowSelectionAllowed(true);
         table.setAutoCreateRowSorter(true);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        table.setShowVerticalLines(false);
 
         for (int i = 0; i < 3; ++i) {
             TableColumn col = table.getColumnModel().getColumn(i);
             col.setPreferredWidth(i == 0 ? 200 : 50);
+
+            if (i == 2) {
+                col.setCellRenderer(new SizeRenderer());
+            } else {
+                col.setCellRenderer(new RowRenderer());
+            }
         }
     }
 
@@ -59,21 +67,11 @@ public class TableFileListView implements FileListView {
     }
 
     @Override
-    public void addMouseListener(@NotNull MouseListener listener) {
-        table.addMouseListener(listener);
-    }
-
-    @Override
-    public void addKeyListener(@NotNull KeyListener listener) {
-            table.addKeyListener(listener);
-    }
-
-    @Override
     public void setDirectoryContents(@NotNull Collection<FileInfo> fileInfos) {
         tableModel.setTableData(fileInfos);
     }
 
-    final static class FSTableModel extends AbstractTableModel {
+    private final static class FSTableModel extends AbstractTableModel {
         private final String[] COLUMN_NAMES = {"Name", "Ext", "Size"};
         @NotNull
         private List<FileInfo> tableData;
@@ -172,6 +170,57 @@ public class TableFileListView implements FileListView {
         @NotNull
         private static Long getSize(@NotNull FileInfo f) {
             return f.getSize();
+        }
+    }
+
+    private static class RowRenderer extends DefaultTableCellRenderer {
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
+            Component cellComponent = super.getTableCellRendererComponent(table, value, isSelected,
+                    hasFocus, row, column);
+
+
+            if (!isSelected) {
+                cellComponent.setBackground(Color.WHITE);
+            } else {
+                if (table.isFocusOwner()) {
+                    cellComponent.setBackground(Color.BLUE);
+                } else {
+                    cellComponent.setBackground(Color.GRAY);
+                }
+            }
+
+            return cellComponent;
+        }
+    }
+
+    private final static class SizeRenderer extends RowRenderer {
+        NumberFormat formatter;
+
+        public SizeRenderer() {
+            super();
+
+            setHorizontalAlignment(JLabel.RIGHT);
+
+            formatter = NumberFormat.getNumberInstance();
+            formatter.setGroupingUsed(true);
+        }
+
+        @Override
+        public void setValue(Object o) {
+            if (o == null) {
+                setText("");
+            } else {
+                long l = ((Long) o);
+                if (l == -1) {
+                    setText("");
+                } else {
+                    setText(formatter.format(l));
+                }
+            }
         }
     }
 }

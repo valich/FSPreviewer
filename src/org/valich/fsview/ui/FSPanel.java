@@ -146,7 +146,7 @@ final class FSPanel extends JPanel {
     }
 
     private void setUpFileListListeners() {
-        fileListView.addMouseListener(new MouseAdapter() {
+        fileListView.getContainer().addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 // Left-button double-click
@@ -158,23 +158,32 @@ final class FSPanel extends JPanel {
                 }
             }
         });
-        fileListView.addKeyListener(new KeyAdapter() {
+
+        fileListView.getContainer().getActionMap().put("Enter", new AbstractAction() {
             @Override
-            public void keyPressed(KeyEvent e) {
+            public void actionPerformed(ActionEvent e) {
                 FileInfo f = fileListView.getSelectedFile();
                 if (f == null)
                     return;
 
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_SPACE:
-                        processPreviewFile(f.getName());
-                        break;
-                    case KeyEvent.VK_ENTER:
-                        processChangeDir(f.getName());
-                        break;
-                }
+                processChangeDir(f.getName());
             }
         });
+        fileListView.getContainer().getActionMap().put("Preview", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                FileInfo f = fileListView.getSelectedFile();
+                if (f == null)
+                    return;
+
+                processPreviewFile(f.getName());
+            }
+        });
+
+        fileListView.getContainer().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
+                .put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "Preview");
+        fileListView.getContainer().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
+                .put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Enter");
     }
 
     private void processChangeDir(@NotNull final String fileName) {

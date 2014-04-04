@@ -347,14 +347,32 @@ public final class IncrementalCompositingFSReader implements FSReader<String> {
         if (!SimpleFSReaderFactory.INSTANCE.isSupportedFileName(fileName))
             throw new UnsupportedDataTypeException("No FSReader for this file");
 
-        Path newDir = Files.createTempDirectory("temp");
-        // file's path may be from different provider
-        Path tempFile = newDir.resolve(fileName);
-        InputStream is = readerStack.peek().retrieveFileInputStream(path);
+        boolean canReadFromPath = false;
+        try {
+            Files.isRegularFile(path);
+            canReadFromPath = true;
+        } catch (UnsupportedOperationException ignore) {
+        }
 
-        Logger.getLogger("test").fine("Temp file " + tempFile);
-        Files.copy(is, tempFile);
-        return SimpleFSReaderFactory.INSTANCE.getReaderForFile(tempFile);
+        final Path toReadFrom;
+        if (canReadFromPath) {
+            toReadFrom = path;
+        } else {
+            Path newDir = Files.createTempDirectory("temp");
+            newDir.toFile().deleteOnExit();
+
+            // file's path may be from different provider
+            Path tempFile = newDir.resolve(fileName);
+            InputStream is = readerStack.peek().retrieveFileInputStream(path);
+
+            Logger.getLogger("test").fine("Temp file " + tempFile);
+            Files.copy(is, tempFile);
+            tempFile.toFile().deleteOnExit();
+
+            toReadFrom = tempFile;
+        }
+
+        return SimpleFSReaderFactory.INSTANCE.getReaderForFile(toReadFrom);
     }
 
 

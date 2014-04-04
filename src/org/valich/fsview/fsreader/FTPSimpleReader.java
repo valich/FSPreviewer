@@ -35,6 +35,8 @@ final class FTPSimpleReader extends AbstractSimpleFSReader {
         if (!client.login("anonymous", "12345")) {
             throw new IOException("Authentication failed: " + client.getReplyString());
         }
+
+        setPath(getPath().getFileSystem().getPath(client.printWorkingDirectory()));
     }
 
     private void completePendingCommandIfAny() throws IOException {

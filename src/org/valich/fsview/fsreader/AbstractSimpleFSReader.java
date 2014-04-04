@@ -10,11 +10,13 @@ abstract class AbstractSimpleFSReader implements SimpleFSReader {
     private Path path;
 
     @NotNull
-    @Override public synchronized Path getWorkingDirectory() {
+    @Override
+    public synchronized Path getWorkingDirectory() {
         return path;
     }
 
-    @Override public synchronized boolean changeDirectory(@NotNull Path path) throws IOException {
+    @Override
+    public synchronized boolean changeDirectory(@NotNull Path path) throws IOException {
         assert this.path.isAbsolute();
 
         Path resolved = PathHelper.resolveWithoutGoingDown(this.path, path);
@@ -32,5 +34,9 @@ abstract class AbstractSimpleFSReader implements SimpleFSReader {
 
     protected Path getPath() {
         return path;
+    }
+
+    protected void setPath(Path path) {
+        this.path = path;
     }
 }
