@@ -9,6 +9,7 @@ import org.valich.fsview.ui.preview.OuterPreviewFrame;
 import org.valich.fsview.ui.preview.PreviewComponentFactory;
 import org.valich.fsview.ui.preview.PreviewFrame;
 
+import javax.activation.UnsupportedDataTypeException;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -30,8 +31,13 @@ final class FSPanel extends JPanel {
 
     private final FSPanel self = this;
     private final FSReader<String> fsReader;
+    private final History<String> browsingHistory;
+
+    private final JButton backButton;
+    private final JButton forwardButton;
     private final JTextField curDirTextField;
     private final JButton stopChDirButton;
+
     private final PreviewFrame previewFrame;
 
     @NotNull
@@ -49,15 +55,19 @@ final class FSPanel extends JPanel {
         super();
 
         fsReader = new IncrementalCompositingFSReader();
+        browsingHistory = new History<>();
         updateCurrentDirFiles();
         previewFrame = new OuterPreviewFrame(PREVIEW_MIN_SIZE, PREVIEW_MAX_SIZE);
         curDirTextField = new JTextField();
+        backButton = new JButton();
+        forwardButton = new JButton();
         stopChDirButton = new JButton();
 
         setFileListViewStyle(); // table only
         setUpFileListListeners();
         setUpPreviewFrameListeners();
         fileListView.setDirectoryContents(currentDirFiles);
+        browsingHistory.add(fsReader.getWorkingDirectory());
 
         setLayout(new BorderLayout());
         add(getAddressBar(), BorderLayout.NORTH);
@@ -89,21 +99,38 @@ final class FSPanel extends JPanel {
 
     @NotNull
     private JComponent getAddressBar() {
+        backButton.setText("<");
+        backButton.setEnabled(false);
+        backButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (browsingHistory.getPosition() <= 0)
+                    return;
+                processChangeDir(browsingHistory.back(), false);
+                revalidateHistoryButtons();
+            }
+        });
+
+        forwardButton.setText(">");
+        forwardButton.setEnabled(false);
+        forwardButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (browsingHistory.getPosition() + 1 == browsingHistory.getSize())
+                    return;
+                processChangeDir(browsingHistory.forward(), false);
+                revalidateHistoryButtons();
+            }
+        });
+
         curDirTextField.setText(fsReader.getWorkingDirectory());
         curDirTextField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String newDir = curDirTextField.getText();
-                processChangeDir(newDir);
+                processChangeDir(newDir, true);
             }
         });
-
-//        JLayeredPane pane = new JLayeredPane();
-//        pane.setLayout(new GridLayout(2, 2));
-
-        JToolBar toolBar = new JToolBar(SwingConstants.HORIZONTAL);
-        toolBar.setFloatable(false);
-        toolBar.setRollover(true);
 
         stopChDirButton.setText("X");
         stopChDirButton.setEnabled(false);
@@ -117,10 +144,21 @@ final class FSPanel extends JPanel {
             }
         });
 
+        JToolBar toolBar = new JToolBar(SwingConstants.HORIZONTAL);
+        toolBar.setFloatable(false);
+        toolBar.setRollover(true);
+
+        toolBar.add(backButton);
+        toolBar.add(forwardButton);
         toolBar.add(curDirTextField);
         toolBar.add(stopChDirButton);
 
         return toolBar;
+    }
+
+    private void revalidateHistoryButtons() {
+        backButton.setEnabled(browsingHistory.getPosition() > 0);
+        forwardButton.setEnabled(browsingHistory.getPosition() + 1 < browsingHistory.getSize());
     }
 
     private synchronized void updateCurrentDirFiles() {
@@ -154,7 +192,7 @@ final class FSPanel extends JPanel {
                     FileInfo f = fileListView.getSelectedFile();
                     if (f == null)
                         return;
-                    processChangeDir(f.getName());
+                    processChangeDir(f.getName(), true);
                 }
             }
         });
@@ -166,7 +204,7 @@ final class FSPanel extends JPanel {
                 if (f == null)
                     return;
 
-                processChangeDir(f.getName());
+                processChangeDir(f.getName(), true);
             }
         });
         fileListView.getContainer().getActionMap().put("Preview", new AbstractAction() {
@@ -186,9 +224,10 @@ final class FSPanel extends JPanel {
                 .put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Enter");
     }
 
-    private void processChangeDir(@NotNull final String fileName) {
+    private void processChangeDir(@NotNull final String fileName, final boolean writeHistory) {
         Logger.getLogger("test").fine("cd " + fileName);
 
+        final String curDir = fsReader.getWorkingDirectory();
         if (changeDirWorker != null)
             changeDirWorker.cancel(true);
 
@@ -219,15 +258,25 @@ final class FSPanel extends JPanel {
                     updateCurrentDirFiles(result);
                 } catch (InterruptedException | CancellationException ignored) {
                 } catch (ExecutionException e) {
-                    Logger.getLogger("test").warning("Exception: " + e.getCause().getMessage());
-                    e.printStackTrace();
+                    Throwable cause = e.getCause();
+                    if (cause instanceof UnsupportedDataTypeException) {
+                        Logger.getLogger("test").fine("Unsupported: " + cause.getMessage());
+                    } else {
+                        Logger.getLogger("test").warning("Exception: " + cause.getMessage());
+                        e.printStackTrace();
+                    }
                 }
                 finally {
                     if (hasChangedDir) {
-                        fileListView.setDirectoryContents(currentDirFiles);
-
                         String newDir = fsReader.getWorkingDirectory();
                         curDirTextField.setText(newDir);
+                        if (writeHistory) {
+                            browsingHistory.add(newDir);
+                            revalidateHistoryButtons();
+                        }
+
+                        fileListView.setDirectoryContents(currentDirFiles);
+                        fileListView.setSelectedFile(findPreviousDir(curDir, newDir));
                         Logger.getLogger("test").fine("went to: " + newDir);
                     }
 
@@ -294,6 +343,22 @@ final class FSPanel extends JPanel {
         previewFrame.show(self);
 
         previewFileWorker.execute();
+    }
+
+    @NotNull
+    private FileInfo findPreviousDir(@NotNull final String prevPath, @NotNull final String curPath) {
+        if (!prevPath.startsWith(curPath))
+            return FileInfo.UP_DIR;
+
+        String diff = prevPath.substring(curPath.length());
+        String clear = diff.replaceAll("[/\\\\]", "");
+
+        for (FileInfo f : currentDirFiles) {
+            if (f.getName().equals(clear)) {
+                return f;
+            }
+        }
+        return FileInfo.UP_DIR;
     }
 
 }

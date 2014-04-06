@@ -60,6 +60,18 @@ public class TableFileListView implements FileListView {
         return null;
     }
 
+    @Override
+    public boolean setSelectedFile(@NotNull FileInfo file) {
+        int n = tableModel.getRowCount();
+        for (int i = 0; i < n; ++i) {
+            if (tableModel.getTableDataElement(i) == file) {
+                table.changeSelection(table.convertRowIndexToView(i), 0, false, false);
+                return true;
+            }
+        }
+        return false;
+    }
+
     @NotNull
     @Override
     public JComponent getContainer() {

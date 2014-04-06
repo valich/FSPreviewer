@@ -22,6 +22,8 @@ public interface FileListView {
     @Nullable
     FileInfo getSelectedFile();
 
+    boolean setSelectedFile(@NotNull FileInfo file);
+
     /**
      * Returns `root' container with the component
      *

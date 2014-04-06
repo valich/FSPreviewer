@@ -8,6 +8,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.regex.Pattern;
 
 final class PathHelper {
     private PathHelper() {}
@@ -34,7 +35,7 @@ final class PathHelper {
     @NotNull
     public static String LCA(@NotNull Path a, @NotNull String b) {
         String delim = a.getFileSystem().getSeparator();
-        String[] parts = b.split(delim);
+        String[] parts = b.split(Pattern.quote(delim));
 
         Path p = a.getRoot();
         StringBuilder answerB = new StringBuilder();
