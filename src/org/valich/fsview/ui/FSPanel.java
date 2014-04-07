@@ -169,6 +169,8 @@ final class FSPanel extends JPanel {
         } catch (IOException e) {
             Logger.getLogger("test").warning("Exception while getting dir contents: " + e.getMessage());
 //            Logger.getLogger("test").warning(Arrays.toString(e.getStackTrace()));
+        } finally {
+            removeDuplicateUpDir();
         }
     }
 
@@ -176,11 +178,25 @@ final class FSPanel extends JPanel {
         clearCurrentDirFiles();
 
         currentDirFiles.addAll(dirContents);
+
+        removeDuplicateUpDir();
     }
 
     private synchronized void clearCurrentDirFiles() {
         currentDirFiles = new ArrayList<>();
         currentDirFiles.add(FileInfo.UP_DIR);
+    }
+
+    private synchronized void removeDuplicateUpDir() {
+        for (FileInfo f : currentDirFiles) {
+            if (f == FileInfo.UP_DIR)
+                continue;
+
+            if (f.getName().equals("..")) {
+                currentDirFiles.remove(f);
+                break;
+            }
+        }
     }
 
     private void setUpFileListListeners() {

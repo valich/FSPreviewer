@@ -65,11 +65,23 @@ public final class FileInfo {
     }
 
     @NotNull
+    private static String getClearedName(@NotNull Path file) {
+        final String delim = file.getFileSystem().getSeparator();
+
+        if (file.getFileName().toString().contains(delim)) {
+            String cleared = file.getFileName().toString().replace(delim, "");
+            if (file.getFileName().endsWith(cleared))
+                return cleared;
+        }
+        return file.getFileName().toString();
+    }
+
+    @NotNull
     public static FileInfo valueOf(@NotNull Path file) throws IOException {
 //        if (!Files.exists(file))
 //            throw new NoSuchFileException("No such file");
 
-        FileInfo result = new FileInfo(file.getFileName().toString());
+        FileInfo result = new FileInfo(getClearedName(file));
         result.setAttribute(IS_DIRECTORY, Files.isDirectory(file));
         result.setAttribute(IS_REGULAR_FILE, Files.isRegularFile(file));
         result.setAttribute(IS_SYMLINK, Files.isSymbolicLink(file));
